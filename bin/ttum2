@@ -84,6 +84,7 @@ class Config(object):
         self.ttum_path = path.expanduser('~/.ttum')
         self.queue_path = path.join(self.ttum_path, 'queue')
         self.mail_path = path.expanduser('~/.mail')
+        self.mutt_path = path.expanduser('~/.mutt')
         self.merged_path = path.join(self.mail_path, 'merged')
         self.accounts = {}
         self.Account = account_wrapper
@@ -197,14 +198,23 @@ class Folder(object):
     shortcut = None
     account = None
 
-    IGNORE = ('name', account)
+    IGNORE = ('name', 'account')
 
     def __init__(self, name):
         self.name = name
 
     @property
+    def real_shortcut(self):
+        if self.shortcut is not None:
+            return self.shortcut
+        return '%s_%s' % (self.name, self.account.name)
+
+    @property
     def fullpath(self):
         return path.join(self.account.fullpath, self.name)
+
+    def __str__(self):
+        return 'folder %s:%s' % (self.account.name, self.name)
 
 class Account(object):
 
@@ -226,7 +236,7 @@ class Account(object):
         return path.join(config.mail_path, self.name)
 
     def __str__(self):
-        return 'account: %s' % self.name
+        return 'account %s' % self.name
 
         # return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
 
@@ -432,15 +442,18 @@ def generate():
         os.remove(f)
 
     for a in config.accounts.values():
-        print('syncing: %s' % a.name)
-        for f in a.folders.values():
-            shortcut = f.shortcut
-            if shortcut is None:
-                shortcut = '%s_%s' % (f.name, a.name)
-            link_name = path.join(config.merged_path, shortcut)
-            source = f.fullpath
-            print('creating shortcut for %s: %s -> %s' % (shortcut, link_name, source))
-            os.symlink(source, link_name)
+        print('syncing: %s' % a)
+        with open(path.join(config.mutt_path, '%s_mailboxes' % a.name), 'w') as mutt_mailboxes_file:
+            for f in a.folders.values():
+                print('syncing: %s' % f)
+                shortcut = f.real_shortcut
+                link_name = path.join(config.merged_path, shortcut)
+                source = f.fullpath
+
+                mutt_mailboxes_file.write('mailboxes +%s\n' % shortcut)
+
+                print('creating shortcut: %s -> %s' % (link_name, source))
+                os.symlink(source, link_name)
 
 
 
