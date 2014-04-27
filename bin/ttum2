@@ -191,16 +191,15 @@ def sync(account):
 
 
 class Folder(object):
+    name = ''
+    notify = True
+    color = '#cb4b16'
+    shortcut = None
 
-    ATTRIBUTES = ('notify', 'color', 'shortcut')
+    IGNORE = ('name', )
 
     def __init__(self, name):
         self.name = name
-        self.notify = True
-        self.color = '#cb4b16'
-        self.shortcut = None
-
-Folder.DEFAULT = Folder('')
 
 class Account(object):
 
@@ -407,9 +406,9 @@ def show():
         print('* account: %s' % a.name)
         for f in a.folders.values():
             print('    * folder: %s' % f.name)
-            for k in Folder.ATTRIBUTES:
-                if not (k in Folder.DEFAULT.__dict__) or Folder.DEFAULT.__dict__[k] != f.__dict__[k]:
-                    print('        * %s: %s' % (k, f.__dict__[k]))
+            for k, v in f.__dict__.items():
+                if k not in Folder.IGNORE:
+                    print('        * %s: %s' % (k, v))
 
 @command
 def generate():
