@@ -216,8 +216,10 @@ class Account(object):
         self.folders.update({name: f})
 
 
-    # def __str__(self):
-    #     return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
+    def __str__(self):
+        return 'account: %s' % self.name
+
+        # return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
 
 
 class Message(object):
@@ -401,6 +403,8 @@ def check_bg():
 
 @command
 def show():
+    for k, v in config.__dict__.items():
+        print('%s = %s' % (k, v))
 
     for a in config.accounts.values():
         print('* account: %s' % a.name)
@@ -427,7 +431,7 @@ def load_config():
     filename = path.join(config.ttum_path, 'config')
     from six import exec_
     with open(filename, 'r') as f:
-        exec_(f.read(), config.__dict__, config.__dict__)
+        exec_(f.read(), globals())
 
 load_config()
 
