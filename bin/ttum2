@@ -86,6 +86,7 @@ class Config(object):
         self.mail_path = path.expanduser('~/.mail')
         self.mutt_path = path.expanduser('~/.mutt')
         self.merged_path = path.join(self.mail_path, 'merged')
+        self.mailcheck_path = path.expanduser('~/.mailcheckrc')
         self.accounts = {}
         self.Account = account_wrapper
 
@@ -235,6 +236,10 @@ class Account(object):
     def fullpath(self):
         return path.join(config.mail_path, self.name)
 
+    @property
+    def mailcheck_path(self):
+        return path.join(config.mailcheck_path, self.name)
+
     def __str__(self):
         return 'account %s' % self.name
 
@@ -381,7 +386,7 @@ def check_all():
 
     for account in config.accounts.values():
         try:
-            mail = check_output(['mailcheck', '-c', '-f', path.join(path.expanduser('~/.mailcheckrc'), account.name)]).decode().split('\n')
+            mail = check_output(['mailcheck', '-c', '-f', account.mailcheck_path]).decode().split('\n')
             for m in mail:
                 match = mail_matcher.match(m)
                 if match:
@@ -444,16 +449,18 @@ def generate():
     for a in config.accounts.values():
         print('syncing: %s' % a)
         with open(path.join(config.mutt_path, '%s_mailboxes' % a.name), 'w') as mutt_mailboxes_file:
-            for f in a.folders.values():
-                print('syncing: %s' % f)
-                shortcut = f.real_shortcut
-                link_name = path.join(config.merged_path, shortcut)
-                source = f.fullpath
+            with open(a.mailcheck_path, 'w') as mailcheck_file:
+                for f in a.folders.values():
+                    print('syncing: %s' % f)
+                    shortcut = f.real_shortcut
+                    link_name = path.join(config.merged_path, shortcut)
+                    source = f.fullpath
 
-                mutt_mailboxes_file.write('mailboxes +%s\n' % shortcut)
+                    mutt_mailboxes_file.write('mailboxes +%s\n' % shortcut)
+                    mailcheck_file.write('%s\n' % f.fullpath)
 
-                print('creating shortcut: %s -> %s' % (link_name, source))
-                os.symlink(source, link_name)
+                    print('creating shortcut: %s -> %s' % (link_name, source))
+                    os.symlink(source, link_name)
 
 
 
