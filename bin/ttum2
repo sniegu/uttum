@@ -195,11 +195,16 @@ class Folder(object):
     notify = True
     color = '#cb4b16'
     shortcut = None
+    account = None
 
-    IGNORE = ('name', )
+    IGNORE = ('name', account)
 
     def __init__(self, name):
         self.name = name
+
+    @property
+    def fullpath(self):
+        return path.join(self.account.fullpath, self.name)
 
 class Account(object):
 
@@ -212,9 +217,13 @@ class Account(object):
         f = Folder(name)
         for k, v in kwargs.items():
             setattr(f, k, v)
+        f.account = self
 
         self.folders.update({name: f})
 
+    @property
+    def fullpath(self):
+        return path.join(config.mail_path, self.name)
 
     def __str__(self):
         return 'account: %s' % self.name
@@ -416,13 +425,22 @@ def show():
 
 @command
 def generate():
+    for p in os.listdir(config.merged_path):
+        f = path.join(config.merged_path, p)
+        if not path.islink(f):
+            raise Exception('file %s is not link' % f)
+        os.remove(f)
+
     for a in config.accounts.values():
         print('syncing: %s' % a.name)
         for f in a.folders.values():
             shortcut = f.shortcut
             if shortcut is None:
                 shortcut = '%s_%s' % (f.name, a.name)
-            print('creating shortcut: %s' % (shortcut))
+            link_name = path.join(config.merged_path, shortcut)
+            source = f.fullpath
+            print('creating shortcut for %s: %s -> %s' % (shortcut, link_name, source))
+            os.symlink(source, link_name)
 
 
 
