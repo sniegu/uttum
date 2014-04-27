@@ -17,7 +17,8 @@ import re
 import locale
 import argparse
 import inspect
-from config import Account, Folder, Config, config
+from config import Config, config
+from accounts import Account, Folder
 
 sys.path.append(path.expanduser('~/bin'))
 
