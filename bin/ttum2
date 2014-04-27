@@ -10,125 +10,25 @@ import os
 from uuid import uuid4
 import signal
 from time import sleep
-from contextlib import contextmanager
-import shutil
 import re
 import locale
-import argparse
-import inspect
 from config import Config, config, debug
 from accounts import Account, Folder
 from messages import Message
-
-def generate_help(parser):
-    def help():
-        parser.parser.print_help()
-    return help
-
-
-
-class Parser(object):
-
-    def __init__(self, name):
-        self.parser = argparse.ArgumentParser(description=name)
-        self.subparsers = self.parser.add_subparsers(title='command')
-        # self.classic = self.subparsers.add_parser('classic')
-        # self.classic.set_defaults(func=self.classic_call)
-        # self.add(generate_help(self))
-
-
-    def classic_call(self, args):
-        print(args)
-        pass
-
-    def add(self, function):
-        # class ClassicMethod(argparse.Action):
-
-        #     def __call__(self, parser, namespace, values, option_string=None):
-        #         print(function.__name__, namespace, values)
-        # ClassicMethod.function = function
-
-        # self.parser.add_argument('--' + function.__name__, nargs=0, action=ClassicMethod)
-
-        args_names, varargs, keywords, defaults = inspect.getargspec(function)
-        # print(args_names, defaults)
-        # named_args = dict(zip(args[-len(defaults):], defaults))
-
-        first_default = len(args_names) - (len(defaults) if defaults else 0)
-        subparser = self.subparsers.add_parser(function.__name__)
-        for i in range(0, len(args_names)):
-            default = (defaults[i - first_default] if i >= first_default else None)
-            name = args_names[i]
-            arg = dict()
-            # print('default: %s=%s' % (name , default))
-            if default:
-                arg.update(nargs='?', default=default)
-            elif name[-1] == 's':
-                arg.update(nargs='+')
-
-            subparser.add_argument(name, **arg)
-
-        def wrapper(args):
-            v = vars(args)
-            values = {k:v[k] for k in args_names}
-            if 'account' in values:
-                values['account'] = config.accounts[values['account']]
-
-            # print(values)
-            result = function(**values)
-            if result is not None:
-                print(result)
-
-        subparser.set_defaults(func=wrapper)
-
-        return function
-
-    def parse(self):
-        (self.known_args, self.unknown_args) = self.parser.parse_known_args(['help'] if len(sys.argv) == 1 else sys.argv[1:])
-        self.known_args.func(self.known_args)
+from cli import parser
+import utils
 
 
 def noop_handler(signum, frame):
     print('received signal')
 
-@contextmanager
-def locked_file(filename):
-    import fcntl
-    with open(filename, 'w') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        try:
-            yield
-        finally:
-            fcntl.flock(lock, fcntl.LOCK_UN)
 
-
-@contextmanager
-def signal_handler(signum, handler):
-    old_handler = signal.signal(signum, handler)
-    try:
-        yield
-    finally:
-        signal.signal(signum, old_handler )
-
-
-@contextmanager
-def scoped_file(filepath, content):
-    with open(filepath, 'w') as f:
-        f.write(content)
-    try:
-        yield
-    finally:
-        os.remove(filepath)
-
-parser = Parser('ttum2')
 command = parser.add
-
 
 @command
 def notify(line, good=0):
     good = int(good)
-    Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else  '#dc322f'])
-
+    Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else '#dc322f'])
 
 @command
 def filter(account, folder='INBOX', kind='new'):
@@ -179,7 +79,7 @@ def unlocked_sync(account):
 @command
 def sync(account):
     try:
-        with locked_file(path.join(config.mail_path, '.%s-sync.lock' % account.name)):
+        with utils.locked_file(path.join(config.mail_path, '.%s-sync.lock' % account.name)):
             unlocked_sync(account)
 
     except Exception as e:
@@ -187,7 +87,7 @@ def sync(account):
         raise
 
 
-@command
+@parser.simple_command
 def status():
     for msg in Message.list_all():
         msg.read()
@@ -198,7 +98,7 @@ class Wrapper(object):
     def __init__(self, value):
         self.value = value
 
-@command
+@parser.simple_command
 def abort():
     aborted = 0
     for msg in Message.list_all():
@@ -219,6 +119,7 @@ def send(name):
     msg.read()
     try:
         with open(msg.content_file, 'r') as content:
+            debug('sending: %s' % msg)
             check_call(['msmtp'] + msg.arguments, stdin=content)
             notify("sent: %s" % msg)
             msg.forget()
@@ -241,8 +142,8 @@ def freeze(name):
         debug("stoping sleep")
         aborted.value = True
 
-    with signal_handler(signal.SIGUSR1, stop_handler):
-        with scoped_file(msg.pid_file, str(os.getpid())):
+    with utils.signal_handler(signal.SIGUSR1, stop_handler):
+        with utils.scoped_file(msg.pid_file, str(os.getpid())):
             sleep(10)
 
     if aborted.value:
@@ -252,7 +153,7 @@ def freeze(name):
 
 
 
-@command
+@parser.simple_command
 def queue():
 
     msg = Message(str(uuid4()))
@@ -261,7 +162,7 @@ def queue():
     Popen(['ttum2', 'freeze', msg.name])
 
 # TODO: this is to be removed and to make a real status
-@command
+@parser.simple_command
 def check_all():
     mail_matcher = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
     encoding = locale.getdefaultlocale()[1]
@@ -293,7 +194,7 @@ def check_all():
     return out
 
 
-@command
+@parser.simple_command
 def check():
     notify('checking mail...')
     try:
@@ -306,12 +207,12 @@ def check():
     notify('...mail checked')
 
 
-@command
+@parser.simple_command
 def check_bg():
     Popen(['ttum2', 'check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
 
 
-@command
+@parser.simple_command
 def show():
     for k, v in config.__dict__.items():
         print('%s = %s' % (k, v))
@@ -324,7 +225,7 @@ def show():
                 if k not in Folder.IGNORE:
                     print('        * %s: %s' % (k, v))
 
-@command
+@parser.simple_command
 def generate():
     for p in os.listdir(config.merged_path):
         f = path.join(config.merged_path, p)
@@ -350,7 +251,6 @@ def generate():
 
 
 if __name__ == '__main__':
-    with signal_handler(signal.SIGUSR1, noop_handler):
+    with utils.signal_handler(signal.SIGUSR1, noop_handler):
         parser.parse()
-
 
