@@ -1,5 +1,5 @@
 from os import path
-from config import config
+from config import config, debug
 
 class Folder(object):
     name = ''

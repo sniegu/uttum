@@ -11,19 +11,14 @@ from uuid import uuid4
 import signal
 from time import sleep
 from contextlib import contextmanager
-from psutil import pid_exists
 import shutil
 import re
 import locale
 import argparse
 import inspect
-from config import Config, config
+from config import Config, config, debug
 from accounts import Account, Folder
-
-sys.path.append(path.expanduser('~/bin'))
-
-
-debug = print
+from messages import Message
 
 def generate_help(parser):
     def help():
@@ -175,65 +170,9 @@ def sync(account):
         raise
 
 
-
-class Message(object):
-
-    def __init__(self, name):
-        self.name = name
-        self.message_path = path.join(config.queue_path, self.name)
-        self.content_file = path.join(self.message_path, 'content')
-        self.arguments_file = path.join(self.message_path, 'arguments')
-        self.pid_file = path.join(self.message_path, 'pid')
-        self.arguments = None
-
-
-    def read(self):
-        with open(self.arguments_file, 'r') as f:
-            self.arguments = [argument.rstrip('\n') for argument in f.readlines()]
-
-
-    def write(self, arguments, content):
-        os.makedirs(self.message_path)
-        self.arguments = arguments
-
-        with open(self.content_file, 'wb') as f:
-            f.write(content)
-
-        with open(self.arguments_file, 'w') as f:
-            f.write('\n'.join(self.arguments))
-
-
-    def forget(self):
-        shutil.rmtree(self.message_path)
-
-    def pid(self):
-        if not path.exists(self.pid_file):
-            return None
-
-        with open(self.pid_file, 'r') as p:
-            pid = int(p.read())
-
-        if pid_exists(pid):
-            return pid
-        else:
-            debug('already dead: %s' % pid)
-            os.remove(self.pid_file)
-            return None
-
-    def __str__(self):
-        if not self.arguments:
-            return self.name
-        return self.name + ' : ' + self.arguments[self.arguments.index('--') + 1]
-
-
-def messages():
-    for msg_path in os.listdir(config.queue_path):
-        yield Message(os.path.split(msg_path)[1])
-
-
 @command
 def status():
-    for msg in messages():
+    for msg in Message.list_all():
         msg.read()
         print("%s : %s" % (msg, 'frozen' if msg.pid() else 'dormant'))
 
@@ -245,7 +184,7 @@ class Wrapper(object):
 @command
 def abort():
     aborted = 0
-    for msg in messages():
+    for msg in Message.list_all():
         msg.read()
         pid = msg.pid()
         if pid:
@@ -331,7 +270,7 @@ def check_all():
         except CalledProcessError:
             pass
 
-    queued = sum(1 for _ in messages())
+    queued = sum(1 for _ in Message.list_all())
     if queued > 0:
         add('queued: %s' % queued, 'queued', '#6c71c4')
     return out
@@ -392,16 +331,6 @@ def generate():
                     print('creating shortcut: %s -> %s' % (link_name, source))
                     os.symlink(source, link_name)
 
-
-
-def load_config():
-
-    filename = path.join(config.ttum_path, 'config')
-    from six import exec_
-    with open(filename, 'r') as f:
-        exec_(f.read(), globals())
-
-load_config()
 
 if __name__ == '__main__':
     with signal_handler(signal.SIGUSR1, noop_handler):

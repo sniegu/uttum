@@ -1,4 +1,7 @@
+from __future__ import print_function
 from os import path
+
+debug = print
 
 def account_wrapper(name):
     from accounts import Account
@@ -19,3 +22,12 @@ class Config(object):
         self.Account = account_wrapper
 
 config = Config()
+
+def load_config():
+
+    filename = path.join(config.ttum_path, 'config')
+    from six import exec_
+    with open(filename, 'r') as f:
+        exec_(f.read(), globals())
+
+load_config()
