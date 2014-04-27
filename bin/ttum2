@@ -83,45 +83,6 @@ accounts = {}
 def noop_handler(signum, frame):
     print('received signal')
 
-def parse_solarized_color(color):
-    if color.startswith('#'):
-        return color
-    if color == 'base03':
-        return '#002b36'
-    elif color == 'base02':
-        return '#073642'
-    elif color == 'base01':
-        return '#586e75'
-    elif color == 'base00':
-        return '#657b83'
-    elif color == 'base0':
-        return '#839496'
-    elif color == 'base1':
-        return '#93a1a1'
-    elif color == 'base2':
-        return '#eee8d5'
-    elif color == 'base3':
-        return '#fdf6e3'
-    elif color == 'yellow':
-        return '#b58900'
-    elif color == 'orange':
-        return '#cb4b16'
-    elif color == 'red':
-        return '#dc322f'
-    elif color == 'magenta':
-        return '#d33682'
-    elif color == 'violet':
-        return '#6c71c4'
-    elif color == 'blue':
-        return '#268bd2'
-    elif color == 'cyan':
-        return '#2aa198'
-    elif color == 'green':
-        return '#859900'
-    else:
-        raise Exception()
-
-
 @contextmanager
 def locked_file(filename):
     import fcntl
@@ -228,14 +189,7 @@ class Folder(object):
         self.notify = True
         self.color = '#cb4b16'
 
-    def finish(self):
-        self.real_color = parse_solarized_color(self.color)
-        pass
-
 Folder.DEFAULT = Folder('')
-
-
-
 
 class Account(object):
 
@@ -249,7 +203,6 @@ class Account(object):
         for k, v in kwargs.items():
             setattr(f, k, v)
 
-        f.finish()
         self.folders.update({name: f})
 
 
@@ -407,7 +360,7 @@ def check_all():
                     folder = account.folders[folder_name]
                     number = match.group(1)
                     if folder.notify:
-                        add(folder.name + ': ' + number, folder.name, color=folder.real_color)
+                        add(folder.name + ': ' + number, folder.name, color=folder.color)
 
         except CalledProcessError:
             pass
