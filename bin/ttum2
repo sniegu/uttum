@@ -25,14 +25,31 @@ def generate_help(parser):
         parser.parser.print_help()
     return help
 
+
+
 class Parser(object):
 
     def __init__(self, name):
         self.parser = argparse.ArgumentParser(description=name)
         self.subparsers = self.parser.add_subparsers(title='command')
-        self.add(generate_help(self))
+        # self.classic = self.subparsers.add_parser('classic')
+        # self.classic.set_defaults(func=self.classic_call)
+        # self.add(generate_help(self))
+
+
+    def classic_call(self, args):
+        print(args)
+        pass
 
     def add(self, function):
+        # class ClassicMethod(argparse.Action):
+
+        #     def __call__(self, parser, namespace, values, option_string=None):
+        #         print(function.__name__, namespace, values)
+        # ClassicMethod.function = function
+
+        # self.parser.add_argument('--' + function.__name__, nargs=0, action=ClassicMethod)
+
         args_names, varargs, keywords, defaults = inspect.getargspec(function)
         # print(args_names, defaults)
         # named_args = dict(zip(args[-len(defaults):], defaults))
