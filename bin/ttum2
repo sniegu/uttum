@@ -11,7 +11,6 @@ from uuid import uuid4
 import signal
 from time import sleep
 from contextlib import contextmanager
-import glob
 from psutil import pid_exists
 import shutil
 import re
@@ -59,7 +58,7 @@ class Parser(object):
             v = vars(args)
             values = {k:v[k] for k in args_names}
             if 'account' in values:
-                values['account'] = accounts[values['account']]
+                values['account'] = config.accounts[values['account']]
 
             # print(values)
             result = function(**values)
@@ -74,11 +73,22 @@ class Parser(object):
         (self.known_args, self.unknown_args) = self.parser.parse_known_args(['help'] if len(sys.argv) == 1 else sys.argv[1:])
         self.known_args.func(self.known_args)
 
+def account_wrapper(name):
+    account = Account(name)
+    config.accounts.update({name: account})
+    return account
 
-ttum_path = path.expanduser('~/.ttum')
-queue_path = path.join(ttum_path, 'queue')
-mail_path = path.expanduser('~/.mail')
-accounts = {}
+
+class Config(object):
+    def __init__(self):
+        self.ttum_path = path.expanduser('~/.ttum')
+        self.queue_path = path.join(self.ttum_path, 'queue')
+        self.mail_path = path.expanduser('~/.mail')
+        self.merged_path = path.join(self.mail_path, 'merged')
+        self.accounts = {}
+        self.Account = account_wrapper
+
+config = Config()
 
 def noop_handler(signum, frame):
     print('received signal')
@@ -125,7 +135,7 @@ def notify(line, good=0):
 @command
 def filter(account, folder='INBOX', kind='new'):
     debug('filtering: %s %s %s' % (account.name, folder, kind))
-    input_path = path.join(mail_path, account.name, folder, kind)
+    input_path = path.join(config.mail_path, account.name, folder, kind)
     debug('processing: %s' % input_path)
 
     for msg in os.listdir(input_path):
@@ -145,7 +155,7 @@ def filter(account, folder='INBOX', kind='new'):
         if failed:
             print('failed to process %s' % msg)
         else:
-            os.rename(msg_path, path.join(mail_path, 'sorted', msg))
+            os.rename(msg_path, path.join(config.mail_path, 'sorted', msg))
 
         try:
             check_call(['notify_i3status'])
@@ -172,7 +182,7 @@ def unlocked_sync(account):
 @command
 def sync(account):
     try:
-        with locked_file(path.join(mail_path, '.%s-sync.lock' % account.name)):
+        with locked_file(path.join(config.mail_path, '.%s-sync.lock' % account.name)):
             unlocked_sync(account)
 
     except Exception as e:
@@ -182,12 +192,13 @@ def sync(account):
 
 class Folder(object):
 
-    ATTRIBUTES = ('notify', 'color')
+    ATTRIBUTES = ('notify', 'color', 'shortcut')
 
     def __init__(self, name):
         self.name = name
         self.notify = True
         self.color = '#cb4b16'
+        self.shortcut = None
 
 Folder.DEFAULT = Folder('')
 
@@ -214,7 +225,7 @@ class Message(object):
 
     def __init__(self, name):
         self.name = name
-        self.message_path = path.join(queue_path, self.name)
+        self.message_path = path.join(config.queue_path, self.name)
         self.content_file = path.join(self.message_path, 'content')
         self.arguments_file = path.join(self.message_path, 'arguments')
         self.pid_file = path.join(self.message_path, 'pid')
@@ -261,7 +272,7 @@ class Message(object):
 
 
 def messages():
-    for msg_path in os.listdir(queue_path):
+    for msg_path in os.listdir(config.queue_path):
         yield Message(os.path.split(msg_path)[1])
 
 
@@ -348,7 +359,7 @@ def check_all():
     def add(text, name, color='#cb4b16'):
         out.append(dict(color=color, name=name, full_text=text))
 
-    for account in accounts.values():
+    for account in config.accounts.values():
         try:
             mail = check_output(['mailcheck', '-c', '-f', path.join(path.expanduser('~/.mailcheckrc'), account.name)]).decode().split('\n')
             for m in mail:
@@ -375,7 +386,7 @@ def check_all():
 def check():
     notify('checking mail...')
     try:
-        for a in accounts.values():
+        for a in config.accounts.values():
             sync(a)
     except:
         notify('...failed to check mail', 1)
@@ -392,7 +403,7 @@ def check_bg():
 @command
 def show():
 
-    for a in accounts.values():
+    for a in config.accounts.values():
         print('* account: %s' % a.name)
         for f in a.folders.values():
             print('    * folder: %s' % f.name)
@@ -400,18 +411,24 @@ def show():
                 if not (k in Folder.DEFAULT.__dict__) or Folder.DEFAULT.__dict__[k] != f.__dict__[k]:
                     print('        * %s: %s' % (k, f.__dict__[k]))
 
+@command
+def generate():
+    for a in config.accounts.values():
+        print('syncing: %s' % a.name)
+        for f in a.folders.values():
+            shortcut = f.shortcut
+            if shortcut is None:
+                shortcut = '%s_%s' % (f.name, a.name)
+            print('creating shortcut: %s' % (shortcut))
+
+
 
 def load_config():
-    def account_wrapper(name):
-        account = Account(name)
-        accounts.update({name: account})
-        return account
 
-    _globals = dict(Account=account_wrapper)
-    filename = path.join(ttum_path, 'config')
+    filename = path.join(config.ttum_path, 'config')
     from six import exec_
-    with open(filename, 'r') as config:
-        exec_(config.read(), _globals, _globals)
+    with open(filename, 'r') as f:
+        exec_(f.read(), config.__dict__, config.__dict__)
 
 load_config()
 
