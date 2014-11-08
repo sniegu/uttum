@@ -1,4 +1,6 @@
-from config import config, debug
+from __future__ import absolute_import
+
+from uttum.config import config, debug
 import argparse
 import inspect
 import sys
@@ -71,4 +73,4 @@ class Parser(object):
         (self.known_args, self.unknown_args) = self.parser.parse_known_args(['help'] if len(sys.argv) == 1 else sys.argv[1:])
         self.known_args.func(self.known_args)
 
-parser = Parser('ttum2')
+parser = Parser('uttum')

@@ -12,11 +12,12 @@ import signal
 from time import sleep
 import re
 import locale
-from config import Config, config, debug
-from accounts import Account, Folder
-from messages import Message
-from cli import parser
-import utils
+
+from uttum.config import Config, config, debug
+from uttum.accounts import Account, Folder
+from uttum.messages import Message
+from uttum.parser import parser
+from uttum import utils
 
 
 def noop_handler(signum, frame):
@@ -159,7 +160,7 @@ def queue():
     msg = Message(str(uuid4()))
     msg.write(parser.unknown_args, sys.stdin.read())
 
-    Popen(['ttum2', 'freeze', msg.name])
+    Popen(['uttum', 'freeze', msg.name])
 
 # TODO: this is to be removed and to make a real status
 @parser.simple_command
@@ -209,7 +210,7 @@ def check():
 
 @parser.simple_command
 def check_bg():
-    Popen(['ttum2', 'check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
+    Popen(['uttum', 'check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
 
 
 @parser.simple_command

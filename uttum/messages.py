@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 
 from os import path
 import os
-from config import config, debug
+from uttum.config import config, debug
 from psutil import pid_exists
 import shutil
 
