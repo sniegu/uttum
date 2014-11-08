@@ -14,17 +14,14 @@ import locale
 from .config import Config, config, debug
 from .accounts import Account, Folder
 from .messages import Message
-from .parser import parser
 from . import utils
 
-command = parser.add
 
-@command
 def notify(line, good=0):
     good = int(good)
     Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else '#dc322f'])
 
-@command
+
 def filter(account, folder='INBOX', kind='new'):
     debug('filtering: %s %s %s' % (account.name, folder, kind))
     input_path = path.join(config.mail_path, account.name, folder, kind)
@@ -57,7 +54,6 @@ def filter(account, folder='INBOX', kind='new'):
     print("")
 
 
-@command
 def unlocked_sync(account):
     # debug ('offlineimap -a ')
     try:
@@ -70,7 +66,7 @@ def unlocked_sync(account):
     filter(account)
     filter(account, kind='cur')
 
-@command
+
 def sync(account):
     try:
         with utils.locked_file(path.join(config.mail_path, '.%s-sync.lock' % account.name)):
@@ -81,18 +77,15 @@ def sync(account):
         raise
 
 
-@parser.simple_command
-def status():
-    for msg in Message.list_all():
-        msg.read()
-        print("%s : %s" % (msg, 'frozen' if msg.pid() else 'dormant'))
+def status(message):
+    message.read()
+    print("%s : %s" % (message, 'frozen' if message.pid() else 'dormant'))
 
 
 class Wrapper(object):
     def __init__(self, value):
         self.value = value
 
-@parser.simple_command
 def abort():
     aborted = 0
     for msg in Message.list_all():
@@ -107,28 +100,24 @@ def abort():
         notify("aborted messages: %d" % aborted)
 
 
-@command
-def send(name):
-    msg = Message(name)
-    msg.read()
+def send(message):
+    message.read()
     try:
-        with open(msg.content_file, 'r') as content:
-            debug('sending: %s' % msg)
-            check_call(['msmtp'] + msg.arguments, stdin=content)
-            notify("sent: %s" % msg)
-            msg.forget()
+        with open(message.content_file, 'r') as content:
+            debug('sending: %s' % message)
+            check_call(['msmtp'] + message.arguments, stdin=content)
+            notify("sent: %s" % message)
+            message.forget()
 
     except CalledProcessError as e:
-        alert = "failed to send: %s" % ','.join(msg)
+        alert = "failed to send: %s" % ','.join(message)
         print(alert)
         notify(alert, 1)
         sys.exit(1)
 
 
-@command
-def freeze(name):
-    msg = Message(name)
-    msg.read()
+def freeze(message):
+    message.read()
     debug("starting sleep")
     aborted = Wrapper(False)
 
@@ -137,26 +126,25 @@ def freeze(name):
         aborted.value = True
 
     with utils.signal_handler(signal.SIGUSR1, stop_handler):
-        with utils.scoped_file(msg.pid_file, str(os.getpid())):
+        with utils.scoped_file(message.pid_file, str(os.getpid())):
             sleep(10)
 
     if aborted.value:
-        debug("was aborted: %s" % msg)
+        debug("was aborted: %s" % message)
     else:
-        send(msg.name)
+        send(message.name)
 
 
 
-@parser.simple_command
-def queue():
+def queue(arguments):
 
-    msg = Message(str(uuid4()))
-    msg.write(parser.unknown_args, sys.stdin.read())
+    message = Message(str(uuid4()))
+    message.write(arguments, sys.stdin.read())
 
-    Popen(['uttum', 'freeze', msg.name])
+    Popen(['uttum', '--freeze', '--message', message.name])
+
 
 # TODO: this is to be removed and to make a real status
-@parser.simple_command
 def check_all():
     mail_matcher = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
     encoding = locale.getdefaultlocale()[1]
@@ -188,7 +176,6 @@ def check_all():
     return out
 
 
-@parser.simple_command
 def check():
     notify('checking mail...')
     try:
@@ -201,12 +188,10 @@ def check():
     notify('...mail checked')
 
 
-@parser.simple_command
 def check_bg():
-    Popen(['uttum', 'check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
+    Popen(['uttum', '--check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
 
 
-@parser.simple_command
 def show():
     for k, v in config.__dict__.items():
         print('%s = %s' % (k, v))
@@ -219,7 +204,6 @@ def show():
                 if k not in Folder.IGNORE:
                     print('        * %s: %s' % (k, v))
 
-@parser.simple_command
 def generate():
     for p in os.listdir(config.merged_path):
         f = path.join(config.merged_path, p)
@@ -242,3 +226,5 @@ def generate():
 
                     print('creating shortcut: %s -> %s' % (link_name, source))
                     os.symlink(source, link_name)
+
+
