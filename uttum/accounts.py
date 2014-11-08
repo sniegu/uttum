@@ -1,5 +1,7 @@
+from __future__ import print_function, absolute_import
+
 from os import path
-from config import config, debug
+from uttum.config import config, debug
 
 class Folder(object):
     name = ''

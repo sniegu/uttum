@@ -1,10 +1,11 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
+
 from os import path
 
 debug = print
 
 def account_wrapper(name):
-    from accounts import Account
+    from uttum.accounts import Account
     account = Account(name)
     config.accounts.update({name: account})
     return account
