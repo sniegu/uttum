@@ -9,6 +9,7 @@ from uttum.config import config
 from uttum.messages import Message
 import signal
 import argparse
+import sys
 
 
 def noop_handler(signum, frame):
@@ -44,7 +45,16 @@ if __name__ == '__main__':
 
 
     with utils.signal_handler(signal.SIGUSR1, noop_handler):
-        (args, unknown_args) = parser.parse_known_args()
+        argv = list(sys.argv[1:])
+
+        try:
+            i = argv.index('--')
+            args = argv[0:i]
+            other = argv[i + 1:]
+        except ValueError:
+            args, other = argv, []
+
+        args = parser.parse_args(args)
 
         if len(args.accounts) == 0:
             accounts = config.accounts.values()
@@ -57,7 +67,7 @@ if __name__ == '__main__':
             messages = [Message(m) for m in args.messages]
 
         if args.queue:
-            commands.queue(unknown_args)
+            commands.queue(other)
 
         if args.generate:
             commands.generate()

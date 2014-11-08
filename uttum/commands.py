@@ -132,7 +132,7 @@ def freeze(message):
     if aborted.value:
         debug("was aborted: %s" % message)
     else:
-        send(message.name)
+        send(message)
 
 
 
