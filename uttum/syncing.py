@@ -1,5 +1,5 @@
 from __future__ import print_function, absolute_import
-from subprocess import check_call, CalledProcessError
+from subprocess import check_call, CalledProcessError, Popen
 
 from os import path
 from . import utils

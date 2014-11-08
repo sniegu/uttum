@@ -6,6 +6,8 @@ import sys
 from .messages import Message
 from .config import debug
 from . import utils
+from time import sleep
+import signal
 
 def status(message):
     message.read()

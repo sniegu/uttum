@@ -1,7 +1,10 @@
 from __future__ import print_function, absolute_import
 
-from subprocess import CalledProcessError, Popen, STDOUT
+from subprocess import check_output, CalledProcessError, STDOUT
 from . import utils
+import locale
+import re
+from .messages import Message
 
 
 
