@@ -5,6 +5,8 @@ import signal
 import fcntl
 import os
 
+import subprocess
+
 @contextmanager
 def locked_file(filename):
     with open(filename, 'w') as lock:
@@ -32,3 +34,8 @@ def scoped_file(filepath, content):
         yield
     finally:
         os.remove(filepath)
+
+def notify(line, good=0):
+    good = int(good)
+    subprocess.Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else '#dc322f'])
+

@@ -5,8 +5,8 @@ from __future__ import print_function, absolute_import
 
 from uttum import commands
 from uttum import utils
-from uttum.config import config
 from uttum.messages import Message
+from uttum import sending, syncing, config, filtering
 import signal
 import argparse
 import sys
@@ -57,57 +57,62 @@ if __name__ == '__main__':
         args = parser.parse_args(args)
 
         if len(args.accounts) == 0:
-            accounts = config.accounts.values()
+            accounts = config.config.accounts.values()
         else:
-            accounts = [config.accounts[a] for a in args.accounts]
+            accounts = [config.config.accounts[a] for a in args.accounts]
 
         if len(args.messages) == 0:
             messages = list(Message.list_all())
         else:
             messages = [Message(m) for m in args.messages]
 
-        if args.queue:
-            commands.queue(other)
 
-        if args.generate:
-            commands.generate()
 
         if args.check_all:
-            commands.check_all()
+            checking.check_all()
 
-        if args.check:
-            commands.check()
-
-        if args.check_bg:
-            commands.check_bg()
 
         if args.show:
-            commands.show()
+            config.show()
+
+        if args.generate:
+            config.generate()
+
 
         if args.abort:
-            commands.abort()
+            sending.abort()
+
+        if args.queue:
+            sending.queue(other)
 
         if args.status:
             for m in messages:
-                commands.status(m)
+                sending.status(m)
 
         if args.send:
             for m in messages:
-                commands.send(m)
+                sending.send(m)
 
         if args.freeze:
             for m in messages:
-                commands.freeze(m)
+                sending.freeze(m)
+
+
+        if args.check:
+            syncing.check()
+
+        if args.check_bg:
+            syncing.check_bg()
 
         if args.sync:
             for a in accounts:
-                (commands.unlocked_sync if args.unlocked else commands.sync)(a)
+                (syncing.unlocked_sync if args.unlocked else syncing.sync)(a)
 
         if args.filter:
             for a in accounts:
-                commands.filter(a, folder=args.folder, kind=args.category)
+                filtering.filter(a, folder=args.folder, kind=args.category)
 
         for n in args.notifies:
-            commands.notify(n)
+            utils.notify(n)
 
 
