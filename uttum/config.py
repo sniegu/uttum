@@ -62,6 +62,7 @@ class Account(object):
 class Config(object):
 
     def __init__(self):
+
         self.config_path = path.expanduser('~/.uttum')
         self.queue_path = path.join(self.config_path, 'queue')
         self.mail_path = path.expanduser('~/.mail')
@@ -79,7 +80,7 @@ config = Config()
 
 def load_config():
 
-    filename = path.join(config.config_path, 'config')
+    filename = path.join(config.config_path, 'uttumrc')
     globs = {'config': config}
     from six import exec_
     with open(filename, 'r') as f:

@@ -1,0 +1,6 @@
+
+provider = config.account('provider')
+provider.procmailrc = None
+provider.folder('stuff', color='#FF0000')
+provider.folder('long-project-name', shortcut='project')
+provider.folder('not-interesting', notify=False)
