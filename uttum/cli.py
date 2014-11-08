@@ -42,6 +42,7 @@ if __name__ == '__main__':
     parser.add_argument('--check-all', dest='check_all', action='store_true')
     parser.add_argument('--generate', dest='generate', action='store_true')
 
+    config.load_config()
 
 
     with utils.signal_handler(signal.SIGUSR1, noop_handler):
