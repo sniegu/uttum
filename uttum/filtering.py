@@ -7,6 +7,10 @@ from .config import debug
 
 
 def filter(account, folder='INBOX', kind='new'):
+
+    if not account.procmailrc:
+        return
+
     debug('filtering: %s %s %s' % (account.name, folder, kind))
     input_path = path.join(config.config.mail_path, account.name, folder, kind)
     debug('processing: %s' % input_path)
@@ -19,7 +23,7 @@ def filter(account, folder='INBOX', kind='new'):
         failed = False
         try:
             with open(msg_path) as msg_file:
-                check_call(['procmail', path.join(path.expanduser('~/.procmailrc'), account.name)], stdin=msg_file)
+                check_call(['procmail', account.procmailrc], stdin=msg_file)
         except Exception as e:
             failed = True
 

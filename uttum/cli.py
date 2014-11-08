@@ -70,7 +70,7 @@ if __name__ == '__main__':
 
 
         if args.check_all:
-            checking.check_all()
+            print(checking.check_all())
 
 
         if args.show:

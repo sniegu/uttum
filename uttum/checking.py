@@ -20,7 +20,7 @@ def check_all():
 
     for account in config.config.accounts.values():
         try:
-            mail = check_output(['mailcheck', '-c', '-f', account.mailcheck_path]).decode().split('\n')
+            mail = check_output(['mailcheck', '-c', '-f', account.mailcheckrc]).decode().split('\n')
             for m in mail:
                 match = mail_matcher.match(m)
                 if match:

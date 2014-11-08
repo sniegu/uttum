@@ -35,6 +35,10 @@ class Account(object):
         self.name = name
         self.folders = {}
 
+        self.config_path = path.join(config.config_path, 'accounts', self.name)
+        self.procmailrc = path.join(self.config_path, 'procmailrc')
+        self.mailcheckrc = path.join(self.config_path, 'mailcheckrc')
+
 
     def folder(self, name, **kwargs):
         f = Folder(name)
@@ -48,9 +52,6 @@ class Account(object):
     def fullpath(self):
         return path.join(config.mail_path, self.name)
 
-    @property
-    def mailcheck_path(self):
-        return path.join(config.mailcheck_path, self.name)
 
     def __str__(self):
         return 'account %s' % self.name
@@ -58,40 +59,38 @@ class Account(object):
         # return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
 
 
-def account_wrapper(name):
-    account = Account(name)
-    config.accounts.update({name: account})
-    return account
 
 
 class Config(object):
+
     def __init__(self):
         self.config_path = path.expanduser('~/.uttum')
         self.queue_path = path.join(self.config_path, 'queue')
         self.mail_path = path.expanduser('~/.mail')
         self.mutt_path = path.expanduser('~/.mutt')
         self.merged_path = path.join(self.mail_path, 'merged')
-        self.mailcheck_path = path.expanduser('~/.mailcheckrc')
         self.accounts = {}
-        self.Account = account_wrapper
+
+
+    def account(self, name):
+        _account = Account(name)
+        self.accounts.update({name: _account})
+        return _account
 
 config = Config()
-
-
 
 def load_config():
 
     filename = path.join(config.config_path, 'config')
+    globs = {'config': config}
     from six import exec_
     with open(filename, 'r') as f:
-        exec_(f.read(), globals())
+        exec_(f.read(), globs)
 
 
 
 
 def show():
-    for k, v in config.__dict__.items():
-        print('%s = %s' % (k, v))
 
     for a in config.accounts.values():
         print('* account: %s' % a.name)
@@ -111,7 +110,7 @@ def generate():
     for a in config.accounts.values():
         print('syncing: %s' % a)
         with open(path.join(config.mutt_path, '%s_mailboxes' % a.name), 'w') as mutt_mailboxes_file:
-            with open(a.mailcheck_path, 'w') as mailcheck_file:
+            with open(a.mailcheckrc, 'w') as mailcheck_file:
                 for f in a.folders.values():
                     print('syncing: %s' % f)
                     shortcut = f.real_shortcut
