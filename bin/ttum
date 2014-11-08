@@ -1,0 +1,49 @@
+#!/bin/bash
+command=${1?no command given}
+shift
+set -e
+
+function generate_mailboxes() {
+
+	account=${1?no account given}
+	merged=$HOME/.mail/merged
+
+	cd $HOME/.mail/$account
+
+	mailcheckrc=$HOME/.mailcheckrc/$account
+	muttrc=$HOME/.mutt/$account"_mailboxes"
+	rm -f $mailcheckrc
+	rm -f $muttrc
+	while read mb
+	do
+		echo "$HOME/.mail/$account/$mb" >> $mailcheckrc
+		name="$mb"_$account
+		echo "mailboxes +$name" >> $muttrc
+
+		orig="$HOME/.mail/$account/$mb"
+		link=$merged/$name
+
+		if [ -L $link ]
+		then
+			r=`readlink $link`
+			if [ "$orig" = "$r" ]
+			then
+				continue
+			fi
+			echo "$link links to $r (would link to $orig)"
+			continue
+		fi
+		ln -s $orig $link
+
+	done < $HOME/.mailboxesrc/$account
+}
+
+
+case $command in
+	generate)
+		generate_mailboxes "$@"
+		;;
+	*)
+		echo "invalid command: $command"
+		exit 1
+esac

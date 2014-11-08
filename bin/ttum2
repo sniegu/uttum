@@ -1,0 +1,469 @@
+#!/usr/bin/env python
+# if sys.version_info.major < 3:
+from __future__ import print_function
+
+from os import system
+from subprocess import check_call, check_output, CalledProcessError, Popen, STDOUT
+import sys
+from os import path
+import os
+from uuid import uuid4
+import signal
+from time import sleep
+from contextlib import contextmanager
+import glob
+from psutil import pid_exists
+import shutil
+import re
+import locale
+import argparse
+import inspect
+
+sys.path.append(path.expanduser('~/bin'))
+
+
+debug = print
+
+def generate_help(parser):
+    def help():
+        parser.parser.print_help()
+    return help
+
+class Parser(object):
+
+    def __init__(self, name):
+        self.parser = argparse.ArgumentParser(description=name)
+        self.subparsers = self.parser.add_subparsers(title='command')
+        self.add(generate_help(self))
+
+    def add(self, function):
+        args_names, varargs, keywords, defaults = inspect.getargspec(function)
+        # print(args_names, defaults)
+        # named_args = dict(zip(args[-len(defaults):], defaults))
+
+        first_default = len(args_names) - (len(defaults) if defaults else 0)
+        subparser = self.subparsers.add_parser(function.__name__)
+        for i in range(0, len(args_names)):
+            default = (defaults[i - first_default] if i >= first_default else None)
+            name = args_names[i]
+            arg = dict()
+            # print('default: %s=%s' % (name , default))
+            if default:
+                arg.update(nargs='?', default=default)
+            elif name[-1] == 's':
+                arg.update(nargs='+')
+
+            subparser.add_argument(name, **arg)
+
+        def wrapper(args):
+            v = vars(args)
+            values = {k:v[k] for k in args_names}
+            if 'account' in values:
+                values['account'] = accounts[values['account']]
+
+            # print(values)
+            result = function(**values)
+            if result is not None:
+                print(result)
+
+        subparser.set_defaults(func=wrapper)
+
+        return function
+
+    def parse(self):
+        (self.known_args, self.unknown_args) = self.parser.parse_known_args(['help'] if len(sys.argv) == 1 else sys.argv[1:])
+        self.known_args.func(self.known_args)
+
+
+ttum_path = path.expanduser('~/.ttum')
+queue_path = path.join(ttum_path, 'queue')
+mail_path = path.expanduser('~/.mail')
+accounts = {}
+
+def noop_handler(signum, frame):
+    print('received signal')
+
+def parse_solarized_color(color):
+    if color.startswith('#'):
+        return color
+    if color == 'base03':
+        return '#002b36'
+    elif color == 'base02':
+        return '#073642'
+    elif color == 'base01':
+        return '#586e75'
+    elif color == 'base00':
+        return '#657b83'
+    elif color == 'base0':
+        return '#839496'
+    elif color == 'base1':
+        return '#93a1a1'
+    elif color == 'base2':
+        return '#eee8d5'
+    elif color == 'base3':
+        return '#fdf6e3'
+    elif color == 'yellow':
+        return '#b58900'
+    elif color == 'orange':
+        return '#cb4b16'
+    elif color == 'red':
+        return '#dc322f'
+    elif color == 'magenta':
+        return '#d33682'
+    elif color == 'violet':
+        return '#6c71c4'
+    elif color == 'blue':
+        return '#268bd2'
+    elif color == 'cyan':
+        return '#2aa198'
+    elif color == 'green':
+        return '#859900'
+    else:
+        raise Exception()
+
+
+@contextmanager
+def locked_file(filename):
+    import fcntl
+    with open(filename, 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+@contextmanager
+def signal_handler(signum, handler):
+    old_handler = signal.signal(signum, handler)
+    try:
+        yield
+    finally:
+        signal.signal(signum, old_handler )
+
+
+@contextmanager
+def scoped_file(filepath, content):
+    with open(filepath, 'w') as f:
+        f.write(content)
+    try:
+        yield
+    finally:
+        os.remove(filepath)
+
+parser = Parser('ttum2')
+command = parser.add
+
+
+@command
+def notify(line, good=0):
+    good = int(good)
+    Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else  '#dc322f'])
+
+
+@command
+def filter(account, folder='INBOX', kind='new'):
+    debug('filtering: %s %s %s' % (account.name, folder, kind))
+    input_path = path.join(mail_path, account.name, folder, kind)
+    debug('processing: %s' % input_path)
+
+    for msg in os.listdir(input_path):
+        msg_path = path.join(input_path, msg)
+        if not path.exists(msg_path):
+            continue
+
+        failed = False
+        try:
+            with open(msg_path) as msg_file:
+                check_call(['procmail', path.join(path.expanduser('~/.procmailrc'), account.name)], stdin=msg_file)
+        except Exception as e:
+            failed = True
+
+        print('E' if failed else '.', end="")
+        sys.stdout.flush()
+        if failed:
+            print('failed to process %s' % msg)
+        else:
+            os.rename(msg_path, path.join(mail_path, 'sorted', msg))
+
+        try:
+            check_call(['notify_i3status'])
+        except Exception as e:
+            print('failed to notify i3status')
+
+    print("")
+
+
+
+@command
+def unlocked_sync(account):
+    # debug ('offlineimap -a ')
+    try:
+        # -o -u quiet
+        check_call(['offlineimap', '-a', account.name])
+    except CalledProcessError as e:
+        print('failed to call offlineimap: %s' % e)
+        raise
+
+    filter(account)
+    filter(account, kind='cur')
+
+@command
+def sync(account):
+    try:
+        with locked_file(path.join(mail_path, '.%s-sync.lock' % account.name)):
+            unlocked_sync(account)
+
+    except Exception as e:
+        print('failed to lock: %s' % e)
+        raise
+
+
+class Folder(object):
+
+    ATTRIBUTES = ('notify', 'color')
+
+    def __init__(self, name):
+        self.name = name
+        self.notify = True
+        self.color = '#cb4b16'
+
+    def finish(self):
+        self.real_color = parse_solarized_color(self.color)
+        pass
+
+Folder.DEFAULT = Folder('')
+
+
+
+
+class Account(object):
+
+    def __init__(self, name):
+        self.name = name
+        self.folders = {}
+
+
+    def folder(self, name, **kwargs):
+        f = Folder(name)
+        for k, v in kwargs.items():
+            setattr(f, k, v)
+
+        f.finish()
+        self.folders.update({name: f})
+
+
+    # def __str__(self):
+    #     return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
+
+
+class Message(object):
+
+    def __init__(self, name):
+        self.name = name
+        self.message_path = path.join(queue_path, self.name)
+        self.content_file = path.join(self.message_path, 'content')
+        self.arguments_file = path.join(self.message_path, 'arguments')
+        self.pid_file = path.join(self.message_path, 'pid')
+        self.arguments = None
+
+
+    def read(self):
+        with open(self.arguments_file, 'r') as f:
+            self.arguments = [argument.rstrip('\n') for argument in f.readlines()]
+
+
+    def write(self, arguments, content):
+        os.makedirs(self.message_path)
+        self.arguments = arguments
+
+        with open(self.content_file, 'wb') as f:
+            f.write(content)
+
+        with open(self.arguments_file, 'w') as f:
+            f.write('\n'.join(self.arguments))
+
+
+    def forget(self):
+        shutil.rmtree(self.message_path)
+
+    def pid(self):
+        if not path.exists(self.pid_file):
+            return None
+
+        with open(self.pid_file, 'r') as p:
+            pid = int(p.read())
+
+        if pid_exists(pid):
+            return pid
+        else:
+            debug('already dead: %s' % pid)
+            os.remove(self.pid_file)
+            return None
+
+    def __str__(self):
+        if not self.arguments:
+            return self.name
+        return self.name + ' : ' + self.arguments[self.arguments.index('--') + 1]
+
+
+def messages():
+    for msg_path in os.listdir(queue_path):
+        yield Message(os.path.split(msg_path)[1])
+
+
+@command
+def status():
+    for msg in messages():
+        msg.read()
+        print("%s : %s" % (msg, 'frozen' if msg.pid() else 'dormant'))
+
+
+class Wrapper(object):
+    def __init__(self, value):
+        self.value = value
+
+@command
+def abort():
+    aborted = 0
+    for msg in messages():
+        msg.read()
+        pid = msg.pid()
+        if pid:
+            os.kill(int(pid), signal.SIGUSR1)
+            aborted = aborted + 1
+            debug('abort: %s' % pid)
+
+    if aborted:
+        notify("aborted messages: %d" % aborted)
+
+
+@command
+def send(name):
+    msg = Message(name)
+    msg.read()
+    try:
+        with open(msg.content_file, 'r') as content:
+            check_call(['msmtp'] + msg.arguments, stdin=content)
+            notify("sent: %s" % msg)
+            msg.forget()
+
+    except CalledProcessError as e:
+        alert = "failed to send: %s" % ','.join(msg)
+        print(alert)
+        notify(alert, 1)
+        sys.exit(1)
+
+
+@command
+def freeze(name):
+    msg = Message(name)
+    msg.read()
+    debug("starting sleep")
+    aborted = Wrapper(False)
+
+    def stop_handler(signum, frame):
+        debug("stoping sleep")
+        aborted.value = True
+
+    with signal_handler(signal.SIGUSR1, stop_handler):
+        with scoped_file(msg.pid_file, str(os.getpid())):
+            sleep(10)
+
+    if aborted.value:
+        debug("was aborted: %s" % msg)
+    else:
+        send(msg.name)
+
+
+
+@command
+def queue():
+
+    msg = Message(str(uuid4()))
+    msg.write(parser.unknown_args, sys.stdin.read())
+
+    Popen(['ttum2', 'freeze', msg.name])
+
+# TODO: this is to be removed and to make a real status
+@command
+def check_all():
+    mail_matcher = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
+    encoding = locale.getdefaultlocale()[1]
+    out = []
+
+    def add(text, name, color='#cb4b16'):
+        out.append(dict(color=color, name=name, full_text=text))
+
+    for account in accounts.values():
+        try:
+            mail = check_output(['mailcheck', '-c', '-f', path.join(path.expanduser('~/.mailcheckrc'), account.name)]).decode().split('\n')
+            for m in mail:
+                match = mail_matcher.match(m)
+                if match:
+                    folder_name = match.group(2)
+                    if folder_name not in account.folders:
+                        continue
+                    folder = account.folders[folder_name]
+                    number = match.group(1)
+                    if folder.notify:
+                        add(folder.name + ': ' + number, folder.name, color=folder.real_color)
+
+        except CalledProcessError:
+            pass
+
+    queued = sum(1 for _ in messages())
+    if queued > 0:
+        add('queued: %s' % queued, 'queued', '#6c71c4')
+    return out
+
+
+@command
+def check():
+    notify('checking mail...')
+    try:
+        for a in accounts.values():
+            sync(a)
+    except:
+        notify('...failed to check mail', 1)
+        raise
+
+    notify('...mail checked')
+
+
+@command
+def check_bg():
+    Popen(['ttum2', 'check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
+
+
+@command
+def show():
+
+    for a in accounts.values():
+        print('* account: %s' % a.name)
+        for f in a.folders.values():
+            print('    * folder: %s' % f.name)
+            for k in Folder.ATTRIBUTES:
+                if not (k in Folder.DEFAULT.__dict__) or Folder.DEFAULT.__dict__[k] != f.__dict__[k]:
+                    print('        * %s: %s' % (k, f.__dict__[k]))
+
+
+def load_config():
+    def account_wrapper(name):
+        account = Account(name)
+        accounts.update({name: account})
+        return account
+
+    _globals = dict(Account=account_wrapper)
+    filename = path.join(ttum_path, 'config')
+    from six import exec_
+    with open(filename, 'r') as config:
+        exec_(config.read(), _globals, _globals)
+
+load_config()
+
+if __name__ == '__main__':
+    with signal_handler(signal.SIGUSR1, noop_handler):
+        parser.parse()
+
+
