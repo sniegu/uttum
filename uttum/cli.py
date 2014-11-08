@@ -6,7 +6,7 @@ from __future__ import print_function, absolute_import
 from uttum import commands
 from uttum import utils
 from uttum.messages import Message
-from uttum import sending, syncing, config, filtering
+from uttum import sending, syncing, config, filtering, checking
 import signal
 import argparse
 import sys

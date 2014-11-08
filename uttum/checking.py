@@ -5,6 +5,7 @@ from . import utils
 import locale
 import re
 from .messages import Message
+from . import config
 
 
 
@@ -17,7 +18,7 @@ def check_all():
     def add(text, name, color='#cb4b16'):
         out.append(dict(color=color, name=name, full_text=text))
 
-    for account in config.accounts.values():
+    for account in config.config.accounts.values():
         try:
             mail = check_output(['mailcheck', '-c', '-f', account.mailcheck_path]).decode().split('\n')
             for m in mail:
