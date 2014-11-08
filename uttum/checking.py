@@ -7,11 +7,10 @@ import re
 from .messages import Message
 from . import config
 
-
+MAIL_MATCHER = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
 
 # TODO: this is to be removed and to make a real status
 def check_all():
-    mail_matcher = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
     encoding = locale.getdefaultlocale()[1]
     out = []
 
@@ -22,7 +21,7 @@ def check_all():
         try:
             mail = check_output(['mailcheck', '-c', '-f', account.mailcheckrc]).decode().split('\n')
             for m in mail:
-                match = mail_matcher.match(m)
+                match = MAIL_MATCHER.match(m)
                 if match:
                     folder_name = match.group(2)
                     if folder_name not in account.folders:

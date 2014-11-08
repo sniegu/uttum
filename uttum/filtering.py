@@ -4,6 +4,8 @@ from subprocess import check_call
 from os import path, listdir
 from . import config
 from .config import debug
+import sys
+import os
 
 
 def filter(account, folder='INBOX', kind='new'):

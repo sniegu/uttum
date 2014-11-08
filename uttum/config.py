@@ -1,6 +1,7 @@
 from __future__ import print_function, absolute_import
 
 from os import path
+import os
 
 debug = print
 
@@ -23,8 +24,8 @@ class Folder(object):
         return '%s_%s' % (self.name, self.account.name)
 
     @property
-    def fullpath(self):
-        return path.join(self.account.fullpath, self.name)
+    def mailpath(self):
+        return path.join(self.account.mailpath, self.name)
 
     def __str__(self):
         return 'folder %s:%s' % (self.account.name, self.name)
@@ -38,6 +39,7 @@ class Account(object):
         self.config_path = path.join(config.config_path, 'accounts', self.name)
         self.procmailrc = path.join(self.config_path, 'procmailrc')
         self.mailcheckrc = path.join(self.config_path, 'mailcheckrc')
+        self.mailpath = path.join(config.mail_path, self.name)
 
 
     def folder(self, name, **kwargs):
@@ -47,10 +49,6 @@ class Account(object):
         f.account = self
 
         self.folders.update({name: f})
-
-    @property
-    def fullpath(self):
-        return path.join(config.mail_path, self.name)
 
 
     def __str__(self):
@@ -87,7 +85,7 @@ def load_config():
     with open(filename, 'r') as f:
         exec_(f.read(), globs)
 
-
+load_config()
 
 
 def show():
@@ -115,10 +113,10 @@ def generate():
                     print('syncing: %s' % f)
                     shortcut = f.real_shortcut
                     link_name = path.join(config.merged_path, shortcut)
-                    source = f.fullpath
+                    source = f.mailpath
 
                     mutt_mailboxes_file.write('mailboxes +%s\n' % shortcut)
-                    mailcheck_file.write('%s\n' % f.fullpath)
+                    mailcheck_file.write('%s\n' % f.mailpath)
 
                     print('creating shortcut: %s -> %s' % (link_name, source))
                     os.symlink(source, link_name)
