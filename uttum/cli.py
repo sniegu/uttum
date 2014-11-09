@@ -45,6 +45,8 @@ if __name__ == '__main__':
     parser.add_argument('--shell', dest='shell', action='store_true')
     parser.add_argument('--reqs', dest='reqs', action='store_true', help='check requirements')
 
+    parser.add_argument('--muttrc', dest='muttrc', action='store_true', help='print muttrc snippet')
+
 
     with utils.signal_handler(signal.SIGUSR1, noop_handler):
         argv = list(sys.argv[1:])

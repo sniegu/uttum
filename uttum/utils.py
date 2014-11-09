@@ -155,3 +155,11 @@ def notify(line, good=0):
     good = int(good)
     subprocess.Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else '#dc322f'])
 
+
+def assure_path(p):
+    if not path.exists(p):
+        os.makedirs(p)
+
+def write_file(filename):
+    assure_path(path.dirname(filename))
+    return open(filename, 'w')
