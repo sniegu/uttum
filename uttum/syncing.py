@@ -2,19 +2,19 @@ from __future__ import print_function, absolute_import
 
 from os import path
 from . import utils
-from .config import config
+from .config import uttumrc
 from . import filtering
 
 def unlocked_sync(account):
 
-    config.offlineimap.call(['-a', account.name])
+    uttumrc.offlineimap.call(['-a', account.name])
     filtering.filter(account)
     filtering.filter(account, kind='cur')
 
 
 def sync(account):
     try:
-        with utils.locked_file(path.join(config.mail_path, '.%s-sync.lock' % account.name)):
+        with utils.locked_file(path.join(uttumrc.mail_path, '.%s-sync.lock' % account.name)):
             unlocked_sync(account)
 
     except Exception as e:
@@ -24,7 +24,7 @@ def sync(account):
 def check():
     utils.notify('checking mail...')
     try:
-        for a in config.accounts.values():
+        for a in uttumrc.accounts.values():
             sync(a)
     except:
         utils.notify('...failed to check mail', 1)

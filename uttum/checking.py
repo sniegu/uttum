@@ -4,14 +4,14 @@ from . import utils
 import locale
 import re
 from .messages import Message
-from .config import config
+from .config import uttumrc
 
 MAIL_MATCHER = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
 
 # TODO: this is to be removed and to make a real status
 def check_all():
 
-    if not config.mailcheck:
+    if not uttumrc.mailcheck:
         return
     encoding = locale.getdefaultlocale()[1]
     out = []
@@ -19,8 +19,8 @@ def check_all():
     def add(text, name, color='#cb4b16'):
         out.append(dict(color=color, name=name, full_text=text))
 
-    for account in config.accounts.values():
-        for m in config.mailcheck.lines(['-c', '-f', account.mailcheckrc]):
+    for account in uttumrc.accounts.values():
+        for m in uttumrc.mailcheck.lines(['-c', '-f', account.mailcheckrc]):
             match = MAIL_MATCHER.match(m)
             if match:
                 folder_name = match.group(2)

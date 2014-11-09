@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import signal
 import fcntl
 import os
+from os import path
 
 import subprocess
 
@@ -61,11 +62,25 @@ class RequirementWrapper(object):
         return subprocess.Popen(command, *args, **kwargs)
 
 
+    @property
+    def ok(self):
+        return self.requirement.is_ok()
+
+
+
     def __str__(self):
         return self.requirement.value
 
+    def __unicode__(self):
+        return self.requirement.value
+
+    def __repr__(self):
+        return self.requirement.value
+
+
     def __bool__(self):
         return self.requirement.ok
+
 
 class RequirementNotSatisfied(Exception):
     pass
@@ -82,15 +97,22 @@ class Requirement(object):
         self._ok = None
         self.value = value
 
-    @property
-    def ok(self):
+    def is_ok(self):
         if self._ok is None:
-            self._ok = True
+            if self.value is None:
+                self._ok = False
+            else:
+                try:
+                    subprocess.check_call(['which', self.value], stdout=open('/dev/null', 'w'))
+                    self._ok = True
+                except subprocess.CalledProcessError as e:
+                    self._ok = False
+
         return self._ok
 
     def raise_for_ok(self):
-        if not self.ok:
-            raise RequirementNotSatisfied()
+        if not self.is_ok():
+            raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value))
 
     def __get__(self, instance, owner):
         return RequirementWrapper(self)

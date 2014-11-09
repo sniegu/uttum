@@ -3,7 +3,7 @@ from __future__ import print_function, absolute_import
 from uuid import uuid4
 import sys
 from .messages import Message
-from .config import debug, config
+from .config import debug, uttumrc
 from . import utils
 from time import sleep
 import signal
@@ -36,7 +36,7 @@ def send(message):
 
     with open(message.content_file, 'r') as content:
         debug('sending: %s' % message)
-        if not config.msmtp.call(message.arguments, stdin=content, throw=False):
+        if not uttumrc.msmtp.call(message.arguments, stdin=content, throw=False):
             utils.notify("failed to send: %s" % ','.join(message), 1)
             return False
 
@@ -70,4 +70,4 @@ def queue(arguments):
     message = Message(str(uuid4()))
     message.write(arguments, sys.stdin.read())
 
-    config.uttum.popen(['--freeze', '--message', message.name])
+    uttumrc.uttum.popen(['--freeze', '--message', message.name])

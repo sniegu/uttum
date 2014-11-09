@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import
 
 from os import path
 import os
-from uttum.config import config, debug
+from .config import uttumrc, debug
 from psutil import pid_exists
 import shutil
 
@@ -10,7 +10,7 @@ class Message(object):
 
     def __init__(self, name):
         self.name = name
-        self.message_path = path.join(config.queue_path, self.name)
+        self.message_path = path.join(uttumrc.queue_path, self.name)
         self.content_file = path.join(self.message_path, 'content')
         self.arguments_file = path.join(self.message_path, 'arguments')
         self.pid_file = path.join(self.message_path, 'pid')
@@ -57,5 +57,5 @@ class Message(object):
 
     @staticmethod
     def list_all():
-        for msg_path in os.listdir(config.queue_path):
+        for msg_path in os.listdir(uttumrc.queue_path):
             yield Message(os.path.split(msg_path)[1])

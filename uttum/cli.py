@@ -6,6 +6,7 @@ from __future__ import print_function, absolute_import
 from uttum import utils
 from uttum.messages import Message
 from uttum import sending, syncing, config, filtering, checking
+from uttum.config import uttumrc
 import signal
 import argparse
 import sys
@@ -41,6 +42,8 @@ if __name__ == '__main__':
     parser.add_argument('--check-all', dest='check_all', action='store_true')
     parser.add_argument('--generate', dest='generate', action='store_true')
 
+    parser.add_argument('--shell', dest='shell', action='store_true')
+
 
     with utils.signal_handler(signal.SIGUSR1, noop_handler):
         argv = list(sys.argv[1:])
@@ -55,9 +58,9 @@ if __name__ == '__main__':
         args = parser.parse_args(args)
 
         if len(args.accounts) == 0:
-            accounts = config.config.accounts.values()
+            accounts = uttumrc.accounts.values()
         else:
-            accounts = [config.config.accounts[a] for a in args.accounts]
+            accounts = [uttumrc.accounts[a] for a in args.accounts]
 
         if len(args.messages) == 0:
             messages = list(Message.list_all())
@@ -113,5 +116,8 @@ if __name__ == '__main__':
 
         for n in args.notifies:
             utils.notify(n)
+
+        if args.shell:
+            from IPython import embed ; embed()
 
 

@@ -37,10 +37,10 @@ class Account(object):
         self.name = name
         self.folders = {}
 
-        self.config_path = path.join(config.config_path, 'accounts', self.name)
+        self.config_path = path.join(uttumrc.config_path, 'accounts', self.name)
         self.procmailrc = path.join(self.config_path, 'procmailrc')
         self.mailcheckrc = path.join(self.config_path, 'mailcheckrc')
-        self.mailpath = path.join(config.mail_path, self.name)
+        self.mailpath = path.join(uttumrc.mail_path, self.name)
 
 
     def folder(self, name, **kwargs):
@@ -67,6 +67,7 @@ class Config(object):
     mailcheck = Requirement('mailcheck')
     twmnc = Requirement('twmnc')
     uttum = Requirement('uttum')
+    notexists = Requirement('notexists')
     notify_i3status = Requirement('notify_i3status')
 
     def __init__(self):
@@ -84,12 +85,12 @@ class Config(object):
         self.accounts.update({name: _account})
         return _account
 
-config = Config()
+uttumrc = Config()
 
 def load_config():
 
-    filename = path.join(config.config_path, 'uttumrc')
-    globs = {'config': config}
+    filename = path.join(uttumrc.config_path, 'uttumrc')
+    globs = {'uttumrc': uttumrc}
     from six import exec_
     with open(filename, 'r') as f:
         exec_(f.read(), globs)
@@ -99,7 +100,7 @@ load_config()
 
 def show():
 
-    for a in config.accounts.values():
+    for a in uttumrc.accounts.values():
         print('* account: %s' % a.name)
         for f in a.folders.values():
             print('    * folder: %s' % f.name)
@@ -108,20 +109,20 @@ def show():
                     print('        * %s: %s' % (k, v))
 
 def generate():
-    for p in os.listdir(config.merged_path):
-        f = path.join(config.merged_path, p)
+    for p in os.listdir(uttumrc.merged_path):
+        f = path.join(uttumrc.merged_path, p)
         if not path.islink(f):
             raise Exception('file %s is not link' % f)
         os.remove(f)
 
-    for a in config.accounts.values():
+    for a in uttumrc.accounts.values():
         print('syncing: %s' % a)
-        with open(path.join(config.mutt_path, '%s_mailboxes' % a.name), 'w') as mutt_mailboxes_file:
+        with open(path.join(uttumrc.mutt_path, '%s_mailboxes' % a.name), 'w') as mutt_mailboxes_file:
             with open(a.mailcheckrc, 'w') as mailcheck_file:
                 for f in a.folders.values():
                     print('syncing: %s' % f)
                     shortcut = f.real_shortcut
-                    link_name = path.join(config.merged_path, shortcut)
+                    link_name = path.join(uttumrc.merged_path, shortcut)
                     source = f.mailpath
 
                     mutt_mailboxes_file.write('mailboxes +%s\n' % shortcut)
