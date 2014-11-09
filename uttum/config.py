@@ -66,6 +66,7 @@ class Config(object):
     offlineimap = Requirement('offlineimap')
     mailcheck = Requirement('mailcheck')
     twmnc = Requirement('twmnc')
+    msmtp = Requirement('msmtp')
     uttum = Requirement('uttum')
     notify_i3status = Requirement('notify_i3status')
 
@@ -77,6 +78,7 @@ class Config(object):
         self.mutt_path = path.expanduser('~/.mutt')
         self.merged_path = path.join(self.mail_path, 'merged')
         self.accounts = {}
+        self.freeze_time = 10
 
 
     def account(self, name):

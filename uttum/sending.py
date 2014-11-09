@@ -6,6 +6,7 @@ from .messages import Message
 from .config import debug, uttumrc
 from . import utils
 from time import sleep
+import os
 import signal
 
 def status(message):
@@ -56,7 +57,7 @@ def freeze(message):
 
     with utils.signal_handler(signal.SIGUSR1, stop_handler):
         with utils.scoped_file(message.pid_file, str(os.getpid())):
-            sleep(10)
+            sleep(uttumrc.freeze_time)
 
     if aborted.value:
         debug("was aborted: %s" % message)

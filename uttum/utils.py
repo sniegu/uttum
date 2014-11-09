@@ -32,20 +32,23 @@ class RequirementWrapper(object):
     #     self.requirement.raise_for_ok()
     #     return BoundCall(self.requirement, command, args, kwargs)
 
+    def _to_run(self, command):
+        return [self.requirement.value] + list(command)
+
     def call(self, command=[], silent=False, throw=False, lines=False, *args, **kwargs):
 
-        if silent and not self.requirement.ok:
-            return False
-
-        self.requirement.raise_for_ok()
+        if silent:
+            if not self.requirement.is_ok():
+                return False
+        else:
+            self.requirement.raise_for_ok()
 
         try:
-            to_run = [self.requirement.value] + list(command)
             if lines:
-                subprocess.check_call(to_run, *args, **kwargs)
+                subprocess.check_call(self._to_run(command), *args, **kwargs)
                 return True
             else:
-                return subprocess.check_output(to_run, *args, **kwargs).decode().split('\n')
+                return subprocess.check_output(self._to_run(command), *args, **kwargs).decode().split('\n')
 
         except Exception as e:
             print('failed to call %s: %s' % (self.requirement.name, e))
@@ -59,7 +62,7 @@ class RequirementWrapper(object):
 
     def popen(self, command=[], *args, **kwargs):
         self.requirement.raise_for_ok()
-        return subprocess.Popen(command, *args, **kwargs)
+        return subprocess.Popen(self._to_run(command), *args, **kwargs)
 
 
     @property
