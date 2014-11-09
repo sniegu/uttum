@@ -43,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--generate', dest='generate', action='store_true')
 
     parser.add_argument('--shell', dest='shell', action='store_true')
+    parser.add_argument('--reqs', dest='reqs', action='store_true', help='check requirements')
 
 
     with utils.signal_handler(signal.SIGUSR1, noop_handler):
@@ -116,6 +117,11 @@ if __name__ == '__main__':
 
         for n in args.notifies:
             utils.notify(n)
+
+        if args.reqs:
+            if not config.requirements():
+                sys.exit(1)
+
 
         if args.shell:
             from IPython import embed ; embed()

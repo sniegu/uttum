@@ -66,20 +66,21 @@ class RequirementWrapper(object):
     def ok(self):
         return self.requirement.is_ok()
 
+    @property
+    def name(self):
+        return self.requirement.name
+
 
 
     def __str__(self):
-        return self.requirement.value
+        return (self.requirement.value if self.requirement.value is not None else '<none>')
 
-    def __unicode__(self):
-        return self.requirement.value
-
-    def __repr__(self):
-        return self.requirement.value
+    __unicode__ = __str__
+    __repr__ = __str__
 
 
     def __bool__(self):
-        return self.requirement.ok
+        return self.requirement.is_ok()
 
 
 class RequirementNotSatisfied(Exception):

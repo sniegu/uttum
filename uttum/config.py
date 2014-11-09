@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import
 
 from os import path
 import os
-from utils import Requirement
+from .utils import Requirement
 
 debug = print
 
@@ -67,7 +67,6 @@ class Config(object):
     mailcheck = Requirement('mailcheck')
     twmnc = Requirement('twmnc')
     uttum = Requirement('uttum')
-    notexists = Requirement('notexists')
     notify_i3status = Requirement('notify_i3status')
 
     def __init__(self):
@@ -84,6 +83,12 @@ class Config(object):
         _account = Account(name)
         self.accounts.update({name: _account})
         return _account
+
+    @property
+    def requirements(self):
+        for k, v in self.__class__.__dict__.items():
+            if v.__class__.__name__ == 'Requirement':
+                yield getattr(self, k)
 
 uttumrc = Config()
 
@@ -130,3 +135,11 @@ def generate():
 
                     print('creating shortcut: %s -> %s' % (link_name, source))
                     os.symlink(source, link_name)
+
+def requirements():
+    result = True
+    for r in uttumrc.requirements:
+        print('%s : %s : %s' % (r.name, r, r.ok))
+        if not r.ok:
+            result = False
+    return result
