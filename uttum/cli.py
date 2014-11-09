@@ -89,7 +89,8 @@ if __name__ == '__main__':
 
         if args.send:
             for m in messages:
-                sending.send(m)
+                if not sending.send(m):
+                    sys.exit(1)
 
         if args.freeze:
             for m in messages:

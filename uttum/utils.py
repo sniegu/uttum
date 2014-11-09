@@ -7,6 +7,96 @@ import os
 
 import subprocess
 
+# class BoundCall(object):
+
+#     def __init__(self, requirement, command, args, kwargs):
+#         self.requirement = requirement
+#         self.command = [self.requirement.value] + list(command)
+#         self.args = args
+#         self.kwargs = kwargs
+
+#     def async(self):
+#         subprocess.Popen(self.command, *self.args, **self.kwargs)
+
+#     def run(self):
+#         subprocess.check_call(self.command, *self.args, **self.kwargs)
+
+
+class RequirementWrapper(object):
+
+    def __init__(self, requirement):
+        self.requirement = requirement
+
+    # def __call__(self, command, *args, **kwargs):
+    #     self.requirement.raise_for_ok()
+    #     return BoundCall(self.requirement, command, args, kwargs)
+
+    def call(self, command=[], silent=False, throw=False, lines=False, *args, **kwargs):
+
+        if silent and not self.requirement.ok:
+            return False
+
+        self.requirement.raise_for_ok()
+
+        try:
+            to_run = [self.requirement.value] + list(command)
+            if lines:
+                subprocess.check_call(to_run, *args, **kwargs)
+                return True
+            else:
+                return subprocess.check_output(to_run, *args, **kwargs).decode().split('\n')
+
+        except Exception as e:
+            print('failed to call %s: %s' % (self.requirement.name, e))
+            if throw:
+                raise
+            if lines:
+                return []
+            else:
+                return False
+
+
+    def popen(self, command=[], *args, **kwargs):
+        self.requirement.raise_for_ok()
+        return subprocess.Popen(command, *args, **kwargs)
+
+
+    def __str__(self):
+        return self.requirement.value
+
+    def __bool__(self):
+        return self.requirement.ok
+
+class RequirementNotSatisfied(Exception):
+    pass
+
+class Requirement(object):
+
+    def __init__(self, name, value=None):
+        self.name = name
+        self.value = value if value is not None else name
+        self._ok = None
+
+
+    def __set__(self, instance, value):
+        self._ok = None
+        self.value = value
+
+    @property
+    def ok(self):
+        if self._ok is None:
+            self._ok = True
+        return self._ok
+
+    def raise_for_ok(self):
+        if not self.ok:
+            raise RequirementNotSatisfied()
+
+    def __get__(self, instance, owner):
+        return RequirementWrapper(self)
+
+
+
 @contextmanager
 def locked_file(filename):
     with open(filename, 'w') as lock:

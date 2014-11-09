@@ -2,6 +2,7 @@ from __future__ import print_function, absolute_import
 
 from os import path
 import os
+from utils import Requirement
 
 debug = print
 
@@ -60,6 +61,13 @@ class Account(object):
 
 
 class Config(object):
+
+    procmail = Requirement('procmail')
+    offlineimap = Requirement('offlineimap')
+    mailcheck = Requirement('mailcheck')
+    twmnc = Requirement('twmnc')
+    uttum = Requirement('uttum')
+    notify_i3status = Requirement('notify_i3status')
 
     def __init__(self):
 

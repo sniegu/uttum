@@ -1,10 +1,9 @@
 from __future__ import print_function, absolute_import
 
-from subprocess import check_call, CalledProcessError, Popen
 from uuid import uuid4
 import sys
 from .messages import Message
-from .config import debug
+from .config import debug, config
 from . import utils
 from time import sleep
 import signal
@@ -34,18 +33,16 @@ def abort():
 
 def send(message):
     message.read()
-    try:
-        with open(message.content_file, 'r') as content:
-            debug('sending: %s' % message)
-            check_call(['msmtp'] + message.arguments, stdin=content)
-            utils.notify("sent: %s" % message)
-            message.forget()
 
-    except CalledProcessError as e:
-        alert = "failed to send: %s" % ','.join(message)
-        print(alert)
-        utils.notify(alert, 1)
-        sys.exit(1)
+    with open(message.content_file, 'r') as content:
+        debug('sending: %s' % message)
+        if not config.msmtp.call(message.arguments, stdin=content, throw=False):
+            utils.notify("failed to send: %s" % ','.join(message), 1)
+            return False
+
+        utils.notify("sent: %s" % message)
+        message.forget()
+        return True
 
 
 def freeze(message):
@@ -73,4 +70,4 @@ def queue(arguments):
     message = Message(str(uuid4()))
     message.write(arguments, sys.stdin.read())
 
-    Popen(['uttum', '--freeze', '--message', message.name])
+    config.uttum.popen(['--freeze', '--message', message.name])
