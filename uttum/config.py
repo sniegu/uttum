@@ -2,12 +2,31 @@ from __future__ import print_function, absolute_import
 
 from os import path
 import os
-from .utils import ProgramRequirement, FileRequirement, PathRequirement
+from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonRequirement, CommonRequirementWrapper
 from . import utils
 
 debug = print
 
-class Folder(object):
+class ConfigObject(object):
+
+    @property
+    def requirements(self):
+        for d in dir(self):
+            r = getattr(self, d, None)
+            if isinstance(r, CommonRequirementWrapper):
+                yield r
+
+
+    def validate_requirements(self):
+        result = True
+        for r in self.requirements:
+            print('%s : %s : %s' % (r.name, r, r.ok))
+            if not r.ok:
+                result = False
+        return result
+
+
+class Folder(ConfigObject):
     name = ''
     notify = True
     color = '#cb4b16'
@@ -32,7 +51,7 @@ class Folder(object):
     def __str__(self):
         return 'folder %s:%s' % (self.account.name, self.name)
 
-class Account(object):
+class Account(ConfigObject):
 
     config_path = PathRequirement('config path')
     procmailrc = FileRequirement('procmail configuration')
@@ -66,7 +85,7 @@ class Account(object):
 
 
 
-class Config(object):
+class Config(ConfigObject):
 
     procmail = ProgramRequirement('procmail')
     offlineimap = ProgramRequirement('offlineimap')
@@ -106,9 +125,12 @@ class Config(object):
 
     @property
     def requirements(self):
-        for k, v in self.__class__.__dict__.items():
-            if v.__class__.__name__ == 'Requirement':
-                yield getattr(self, k)
+        for r in ConfigObject.requirements.__get__(self):
+            yield r
+        for a in self.accounts.values():
+            for r in a.requirements:
+                yield r
+
 
 uttumrc = Config()
 
@@ -161,10 +183,3 @@ def generate():
                     os.symlink(source, link_name)
 
 
-def requirements():
-    result = True
-    for r in uttumrc.requirements:
-        print('%s : %s : %s' % (r.name, r, r.ok))
-        if not r.ok:
-            result = False
-    return result

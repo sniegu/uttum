@@ -47,9 +47,12 @@ class CommonRequirementWrapper(object):
 
 class CommonRequirement(object):
 
+    all_requirements = []
+
     def __init__(self, name, default_value=None):
         self.name = name
         self.default_value = self._set_transform(default_value)
+        self.all_requirements.append(self)
 
     def _set_transform(self, value):
         return value

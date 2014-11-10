@@ -119,7 +119,7 @@ if __name__ == '__main__':
             utils.notify(n)
 
         if args.reqs:
-            if not config.requirements():
+            if not uttumrc.validate_requirements():
                 sys.exit(1)
 
 
