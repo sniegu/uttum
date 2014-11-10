@@ -20,7 +20,7 @@ def check_all():
         out.append(dict(color=color, name=name, full_text=text))
 
     for account in uttumrc.accounts.values():
-        for m in uttumrc.mailcheck.lines(['-c', '-f', account.mailcheckrc]):
+        for m in uttumrc.mailcheck(['-c', '-f', account.mailcheckrc], lines=True):
             match = MAIL_MATCHER.match(m)
             if match:
                 folder_name = match.group(2)

@@ -7,7 +7,7 @@ from . import filtering
 
 def unlocked_sync(account):
 
-    uttumrc.offlineimap.call(['-a', account.name])
+    uttumrc.offlineimap(['-a', account.name])
     filtering.filter(account)
     filtering.filter(account, kind='cur')
 
@@ -34,5 +34,5 @@ def check():
 
 
 def check_bg():
-    uttum.popen(['uttum', '--check'], stdout=open('/dev/null', 'w'), stderr=STDOUT)
+    uttumrc.uttum(['--check'], devnull=True, async=True)
 

@@ -37,7 +37,7 @@ def send(message):
 
     with open(message.content_file, 'r') as content:
         debug('sending: %s' % message)
-        if not uttumrc.msmtp.call(message.arguments, stdin=content, throw=False):
+        if not uttumrc.msmtp(message.arguments, stdin=content, throw=False):
             utils.notify("failed to send: %s" % ','.join(message), 1)
             return False
 
@@ -71,4 +71,4 @@ def queue(arguments):
     message = Message(str(uuid4()))
     message.write(arguments, sys.stdin.read())
 
-    uttumrc.uttum.popen(['--freeze', '--message', message.name])
+    uttumrc.uttum(['--freeze', '--message', message.name], async=True)

@@ -22,7 +22,7 @@ def filter(account, folder='INBOX', kind='new'):
 
         failed = False
         with open(msg_path) as msg_file:
-            if not uttumrc.procmail.call([account.procmailrc], stdin=msg_file, throw=False):
+            if not uttumrc.procmail([account.procmailrc], stdin=msg_file, throw=False):
                 failed = True
 
         print('E' if failed else '.', end="")
@@ -32,7 +32,7 @@ def filter(account, folder='INBOX', kind='new'):
         else:
             os.rename(msg_path, path.join(uttumrc.mail_path, 'sorted', msg))
 
-        uttumrc.notify_i3status.call(silent=True, throw=False)
+        uttumrc.notify_i3status(silent=True, throw=False)
 
     print("")
 
