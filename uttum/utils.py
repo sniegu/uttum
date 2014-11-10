@@ -44,6 +44,8 @@ class CommonRequirementWrapper(object):
     def __bool__(self):
         return self.ok
 
+    __nonzero__ = __bool__
+
     @property
     def ok(self):
         return self.requirement._is_ok(self.instance)
@@ -195,6 +197,8 @@ class FileRequirementWrapper(FilePathRequirementWrapper):
         filename = self.value_silent
         if path.exists(filename):
             raise Exception('file already exists')
+
+        self._reset_ok()
 
         assure_path(path.dirname(filename))
         print('creating file: %s' % filename)
