@@ -57,5 +57,5 @@ class Message(object):
 
     @staticmethod
     def list_all():
-        for msg_path in os.listdir(uttumrc.queue_path):
+        for msg_path in uttumrc.queue_path:
             yield Message(os.path.split(msg_path)[1])

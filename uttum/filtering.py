@@ -11,8 +11,7 @@ def filter(account, folder='INBOX', kind='new'):
     if not uttumrc.procmail or not account.procmailrc:
         return
 
-    debug('filtering: %s %s %s' % (account.name, folder, kind))
-    input_path = path.join(uttumrc.mail_path, account.name, folder, kind)
+    input_path = account.mailpath / ('%s/%s' % (folder, kind))
     debug('processing: %s' % input_path)
 
     for msg in listdir(input_path):

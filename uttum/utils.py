@@ -8,36 +8,103 @@ from os import path
 
 import subprocess
 
-# class BoundCall(object):
+class RequirementNotSatisfied(Exception):
+    pass
 
-#     def __init__(self, requirement, command, args, kwargs):
-#         self.requirement = requirement
-#         self.command = [self.requirement.value] + list(command)
-#         self.args = args
-#         self.kwargs = kwargs
+class CommonRequirementWrapper(object):
 
-#     def async(self):
-#         subprocess.Popen(self.command, *self.args, **self.kwargs)
-
-#     def run(self):
-#         subprocess.check_call(self.command, *self.args, **self.kwargs)
-
-
-class RequirementWrapper(object):
-
-    def __init__(self, requirement):
+    def __init__(self, requirement, instance):
+        self.instance = instance
         self.requirement = requirement
 
+    @property
+    def value(self):
+        return self.requirement._get_value(self.instance, self.requirement.default_value)
+
+    @property
+    def name(self):
+        return self.requirement.name
+
+    def __str__(self):
+        return (self.value if self.value is not None else '<none>')
+
+    __unicode__ = __str__
+    __repr__ = __str__
+
+
+    def __bool__(self):
+        return self.ok
+
+    @property
+    def ok(self):
+        return self.requirement._is_ok(self.instance)
+
+    def raise_for_ok(self):
+        if not self.ok:
+            raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value))
+
+
+
+class CommonRequirement(object):
+
+    def __init__(self, name, default_value=None):
+        self.name = name
+        self.default_value = self._set_transform(default_value)
+
+    def _set_transform(self, value):
+        return value
+
+    def _get_ok(self, instance):
+        return getattr(instance, '_%s_ok' % self.name, None)
+
+    def _set_ok(self, instance, ok):
+        return setattr(instance, '_%s_ok' % self.name, ok)
+
+    def _get_value(self, instance, default):
+        return getattr(instance, '_%s_value' % self.name, default)
+
+    def _set_value(self, instance, value):
+        return setattr(instance, '_%s_value' % self.name, self._set_transform(value))
+
+    def __set__(self, instance, value):
+        self._set_ok(instance, None)
+        self._set_value(instance, value)
+
+    def __get__(self, instance, owner):
+        return self.wrapper_class(self, instance)
+
+    def _compute_ok(self, value):
+        raise NotImplementedError()
+
+    def _is_ok(self, instance):
+        ok = self._get_ok(instance)
+        if ok is None:
+            value = self._get_value(instance, self.default_value)
+            if value is None:
+                ok = False
+            else:
+                ok = self._compute_ok(value)
+            self._set_ok(instance, ok)
+
+        return ok
+
+
+
+
+class ProgramRequirementWrapper(CommonRequirementWrapper):
+
+
     def _to_run(self, command):
-        return [self.requirement.value] + list(command)
+        return [self.value] + list(command)
+
 
     def __call__(self, command=[], silent=False, throw=False, lines=False, devnull=False, async=False, *args, **kwargs):
 
         if silent:
-            if not self.requirement.is_ok():
+            if not self.ok:
                 return False
         else:
-            self.requirement.raise_for_ok()
+            self.raise_for_ok()
 
         try:
             if lines:
@@ -49,9 +116,9 @@ class RequirementWrapper(object):
                     kwargs['stderr'] = dn
 
                 if async:
-                    subprocess.check_call(self._to_run(command), *args, **kwargs)
-                else:
                     subprocess.Popen(self._to_run(command), *args, **kwargs)
+                else:
+                    subprocess.check_call(self._to_run(command), *args, **kwargs)
 
                 return True
 
@@ -65,116 +132,54 @@ class RequirementWrapper(object):
                 return False
 
 
-    @property
-    def ok(self):
-        return self.requirement.is_ok()
+class ProgramRequirement(CommonRequirement):
 
-    @property
-    def name(self):
-        return self.requirement.name
+    wrapper_class = ProgramRequirementWrapper
 
+    def __init__(self, name, default_value=None):
+        super(ProgramRequirement, self).__init__(name, default_value if default_value is not None else name)
 
-
-    def __str__(self):
-        return (self.requirement.value if self.requirement.value is not None else '<none>')
-
-    __unicode__ = __str__
-    __repr__ = __str__
+    def _compute_ok(self, value):
+        try:
+            subprocess.check_call(['which', value], stdout=open('/dev/null', 'w'))
+            return True
+        except subprocess.CalledProcessError as e:
+            return False
 
 
-    def __bool__(self):
-        return self.requirement.is_ok()
 
-
-class RequirementNotSatisfied(Exception):
+class FilePathRequirementWrapper(CommonRequirementWrapper):
     pass
 
-class Requirement(object):
+class FileRequirementWrapper(FilePathRequirementWrapper):
+    pass
 
-    def __init__(self, name, value=None):
-        self.name = name
-        self.value = value if value is not None else name
-        self._ok = None
+class PathRequirementWrapper(FilePathRequirementWrapper):
 
+    def __div__(self, other):
+        return path.join(self.value, other)
 
-    def __set__(self, instance, value):
-        self._ok = None
-        self.value = value
+    def __iter__(self):
+        self.raise_for_ok()
+        return os.listdir(self.value).__iter__()
 
-    def is_ok(self):
-        if self._ok is None:
-            if self.value is None:
-                self._ok = False
-            else:
-                try:
-                    subprocess.check_call(['which', self.value], stdout=open('/dev/null', 'w'))
-                    self._ok = True
-                except subprocess.CalledProcessError as e:
-                    self._ok = False
+class FilePathRequirement(CommonRequirement):
 
-        return self._ok
+    def _set_transform(self, value):
+        return path.expanduser(value) if value is not None else None
 
-    def raise_for_ok(self):
-        if not self.is_ok():
-            raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value))
+    def _compute_ok(self, value):
+        return path.exists(value)
 
-    def __get__(self, instance, owner):
-        return RequirementWrapper(self)
+class FileRequirement(FilePathRequirement):
+
+    wrapper_class = FileRequirementWrapper
 
 
-class FileRequirementWrapper(object):
 
-    def __init__(self, requirement):
-        self.requirement = requirement
+class PathRequirement(FilePathRequirement):
 
-
-    @property
-    def ok(self):
-        return self.requirement.is_ok()
-
-    @property
-    def name(self):
-        return self.requirement.name
-
-
-    def __str__(self):
-        return (self.requirement.filename if self.requirement.filename is not None else '<none>')
-
-    __unicode__ = __str__
-    __repr__ = __str__
-
-
-    def __bool__(self):
-        return self.requirement.is_ok()
-
-
-class FileRequirement(object):
-
-    def __init__(self, name, filename=None):
-        self.name = name
-        self.filename = filename
-        self._ok = None
-
-
-    def __set__(self, instance, filename):
-        self._ok = None
-        self.filename = filename
-
-    def is_ok(self):
-        if self._ok is None:
-            if self.filename is None:
-                self._ok = False
-            else:
-                pass
-
-        return self._ok
-
-    def raise_for_ok(self):
-        if not self.is_ok():
-            raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.filename))
-
-    def __get__(self, instance, owner):
-        return FileRequirementWrapper(self)
+    wrapper_class = PathRequirementWrapper
 
 
 

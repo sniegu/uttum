@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import
 
 from os import path
 import os
-from .utils import Requirement
+from .utils import ProgramRequirement, FileRequirement, PathRequirement
 from . import utils
 
 debug = print
@@ -27,21 +27,26 @@ class Folder(object):
 
     @property
     def mailpath(self):
-        return path.join(self.account.mailpath, self.name)
+        return self.account.mailpath / self.name
 
     def __str__(self):
         return 'folder %s:%s' % (self.account.name, self.name)
 
 class Account(object):
 
+    config_path = PathRequirement('config path')
+    procmailrc = FileRequirement('procmail configuration')
+    mailcheckrc = FileRequirement('mailcheck configuration')
+    mailpath = PathRequirement('mailbox path')
+
     def __init__(self, name):
         self.name = name
         self.folders = {}
 
-        self.config_path = path.join(uttumrc.config_path, 'accounts', self.name)
-        self.procmailrc = path.join(self.config_path, 'procmailrc')
-        self.mailcheckrc = path.join(self.config_path, 'mailcheckrc')
-        self.mailpath = path.join(uttumrc.mail_path, self.name)
+        self.config_path = uttumrc.accounts_path / self.name
+        self.procmailrc = self.config_path / 'procmailrc'
+        self.mailcheckrc = self.config_path / 'mailcheckrc'
+        self.mailpath = uttumrc.mail_path / self.name
 
 
     def folder(self, name, **kwargs):
@@ -63,23 +68,33 @@ class Account(object):
 
 class Config(object):
 
-    procmail = Requirement('procmail')
-    offlineimap = Requirement('offlineimap')
-    mailcheck = Requirement('mailcheck')
-    twmnc = Requirement('twmnc')
-    msmtp = Requirement('msmtp')
-    uttum = Requirement('uttum')
-    notify_i3status = Requirement('notify_i3status')
+    procmail = ProgramRequirement('procmail')
+    offlineimap = ProgramRequirement('offlineimap')
+    mailcheck = ProgramRequirement('mailcheck')
+    twmnc = ProgramRequirement('twmnc')
+    msmtp = ProgramRequirement('msmtp')
+    uttum = ProgramRequirement('uttum')
+    notify_i3status = ProgramRequirement('notify_i3status')
+
+    uttumrc_path = FileRequirement('uttumrc path')
+    config_path = PathRequirement('configuration path')
+    muttrc_path = FileRequirement('muttrc snippet file')
+    queue_path = PathRequirement('messages queue path')
+    mail_path = PathRequirement('mail path')
+    merged_path = PathRequirement('merged mailbox path')
+    accounts_path = PathRequirement('accounts path')
 
     def __init__(self):
 
-        self.config_path = path.expanduser('~/.uttum')
-        self.muttrc_path = path.join(self.config_path, 'muttrc')
+        self.config_path = '~/.uttum'
+        self.uttumrc_path = self.config_path / 'uttumrc'
+        self.muttrc_path = self.config_path / 'muttrc'
+        self.accounts_path = self.config_path / 'accounts'
 
-        self.queue_path = path.join(self.config_path, 'queue')
-        self.mail_path = path.expanduser('~/.mail')
-        self.mutt_path = path.expanduser('~/.mutt')
-        self.merged_path = path.join(self.mail_path, 'merged')
+        self.queue_path = self.config_path / 'queue'
+        self.mail_path = '~/.mail'
+        self.merged_path = self.mail_path / 'merged'
+
         self.accounts = {}
         self.freeze_time = 10
 
@@ -99,10 +114,9 @@ uttumrc = Config()
 
 def load_config():
 
-    filename = path.join(uttumrc.config_path, 'uttumrc')
     globs = {'uttumrc': uttumrc}
     from six import exec_
-    with open(filename, 'r') as f:
+    with open(str(uttumrc.uttumrc_path), 'r') as f:
         exec_(f.read(), globs)
 
 load_config()

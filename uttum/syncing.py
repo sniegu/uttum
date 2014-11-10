@@ -8,13 +8,14 @@ from . import filtering
 def unlocked_sync(account):
 
     uttumrc.offlineimap(['-a', account.name])
+
     filtering.filter(account)
     filtering.filter(account, kind='cur')
 
 
 def sync(account):
     try:
-        with utils.locked_file(path.join(uttumrc.mail_path, '.%s-sync.lock' % account.name)):
+        with utils.locked_file(uttumrc.mail_path / ('.%s-sync.lock' % account.name)):
             unlocked_sync(account)
 
     except Exception as e:
