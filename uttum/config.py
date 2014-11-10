@@ -89,16 +89,22 @@ class Account(ConfigObject):
 
 
 UTTUMRC_TEMPLATE = """
+# uttumrc.procmail = None
+
 # rename this account
 provider = uttumrc.account('provider')
+# auto find all folders
+provider.find_folders()
+
 # uncomment this to disable filtering for this account
 # provider.procmailrc = None
 
 # uncomment this to disable procmail (filtering) at all
-# uttumrc.procmail = None
 
-# define a folder named 'stuff'
+# define attributes on a folder named 'stuff'
+# (and add it to configuration, if it is not already configured)
 provider.folder('stuff', color='#FF0000')
+
 provider.folder('long-project-name', shortcut='project')
 provider.folder('not-interesting', notify=False)
 """
