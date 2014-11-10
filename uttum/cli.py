@@ -58,15 +58,18 @@ if __name__ == '__main__':
 
         args = parser.parse_args(args)
 
-        if len(args.accounts) == 0:
-            accounts = uttumrc.accounts.values()
-        else:
-            accounts = [uttumrc.accounts[a] for a in args.accounts]
 
-        if len(args.messages) == 0:
-            messages = list(Message.list_all())
-        else:
-            messages = [Message(m) for m in args.messages]
+        def accounts():
+            if len(args.accounts) == 0:
+                return uttumrc.accounts.values()
+            else:
+                return [uttumrc.accounts[a] for a in args.accounts]
+
+        def messages():
+            if len(args.messages) == 0:
+                return list(Message.list_all())
+            else:
+                return [Message(m) for m in args.messages]
 
 
 
@@ -88,16 +91,16 @@ if __name__ == '__main__':
             sending.queue(other)
 
         if args.status:
-            for m in messages:
+            for m in messages():
                 sending.status(m)
 
         if args.send:
-            for m in messages:
+            for m in messages():
                 if not sending.send(m):
                     sys.exit(1)
 
         if args.freeze:
-            for m in messages:
+            for m in messages():
                 sending.freeze(m)
 
 
@@ -108,11 +111,11 @@ if __name__ == '__main__':
             syncing.check_bg()
 
         if args.sync:
-            for a in accounts:
+            for a in accounts():
                 (syncing.unlocked_sync if args.unlocked else syncing.sync)(a)
 
         if args.filter:
-            for a in accounts:
+            for a in accounts():
                 filtering.filter(a, folder=args.folder, kind=args.category)
 
         for n in args.notifies:

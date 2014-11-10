@@ -22,6 +22,10 @@ class CommonRequirementWrapper(object):
         return self.requirement._get_value(self.instance)
 
     @property
+    def enabled(self):
+        return self.value_silent is not None
+
+    @property
     def value(self):
         self.raise_for_ok()
         return self.value_silent
@@ -48,6 +52,12 @@ class CommonRequirementWrapper(object):
         if not self.ok:
             raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value_silent))
 
+    def try_resolve(self):
+        return 'no information available'
+
+    def _reset_ok(self):
+        self.requirement._reset_ok(self.instance)
+
 
 
 class CommonRequirement(object):
@@ -66,7 +76,11 @@ class CommonRequirement(object):
         return getattr(instance, '_%s_ok' % self.name, None)
 
     def _set_ok(self, instance, ok):
-        return setattr(instance, '_%s_ok' % self.name, ok)
+        setattr(instance, '_%s_ok' % self.name, ok)
+
+    def _reset_ok(self, instance):
+        self._set_ok(instance, None)
+
 
     def _get_value(self, instance):
         n = '_%s_value' % self.name
@@ -78,7 +92,7 @@ class CommonRequirement(object):
         return setattr(instance, '_%s_value' % self.name, self._set_transform(value))
 
     def __set__(self, instance, value):
-        self._set_ok(instance, None)
+        self._reset_ok(instance)
         self._set_value(instance, value)
 
     def __get__(self, instance, owner):
@@ -176,8 +190,10 @@ class PathRequirementWrapper(FilePathRequirementWrapper):
         self.raise_for_ok()
         return os.listdir(self.value).__iter__()
 
-    def assure(self):
+    def try_resolve(self):
         assure_path(self.value_silent)
+        self._reset_ok()
+        return 'created directory: %s' % self.value_silent
 
 
 class FilePathRequirement(CommonRequirement):
