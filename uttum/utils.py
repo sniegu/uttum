@@ -195,6 +195,8 @@ class FileRequirementWrapper(FilePathRequirementWrapper):
         filename = self.value_silent
         if path.exists(filename):
             raise Exception('file already exists')
+
+        assure_path(path.dirname(filename))
         print('creating file: %s' % filename)
         with open(filename, 'w') as f:
             f.write(self.requirement.template)
