@@ -27,22 +27,16 @@ class ConfigObject(object):
 
 
 class Folder(ConfigObject):
-    name = ''
     notify = True
     color = '#cb4b16'
     shortcut = None
-    account = None
 
     IGNORE = ('name', 'account')
 
-    def __init__(self, name):
+    def __init__(self, account, name):
+        self.account = account
         self.name = name
-
-    @property
-    def real_shortcut(self):
-        if self.shortcut is not None:
-            return self.shortcut
-        return '%s_%s' % (self.name, self.account.name)
+        self.shortcut = '%s_%s' % (self.name, self.account.name)
 
     @property
     def mailpath(self):
@@ -72,7 +66,7 @@ class Account(ConfigObject):
         try:
             f = self.folders[name]
         except KeyError:
-            f = Folder(name)
+            f = Folder(self, name)
             f.account = self
             self.folders[name] = f
 
@@ -213,11 +207,10 @@ def generate():
         for a in uttumrc.accounts.values():
             with utils.write_file(a.mailcheckrc.value_silent) as mailcheck_file:
                 for f in a.folders.values():
-                    shortcut = f.real_shortcut
-                    link_name = uttumrc.merged_path / shortcut
+                    link_name = uttumrc.merged_path / f.shortcut
                     source = f.mailpath
 
-                    muttrc.write('mailboxes +%s\n' % shortcut)
+                    muttrc.write('mailboxes +%s\n' % f.shortcut)
                     mailcheck_file.write('%s\n' % f.mailpath)
 
                     print('-- creating shortcut: %s -> %s' % (link_name, source))
