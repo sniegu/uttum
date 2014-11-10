@@ -53,7 +53,7 @@ class CommonRequirementWrapper(object):
             raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value_silent))
 
     def try_resolve(self):
-        return 'no information available'
+        return self.requirement.failure_comment
 
     def _reset_ok(self):
         self.requirement._reset_ok(self.instance)
@@ -64,10 +64,11 @@ class CommonRequirement(object):
 
     all_requirements = []
 
-    def __init__(self, name, default_value=None):
+    def __init__(self, name, default_value=None, failure_comment='no information available'):
         self.name = name
         self.default_value = self._set_transform(default_value)
         self.all_requirements.append(self)
+        self.failure_comment = failure_comment
 
     def _set_transform(self, value):
         return value
@@ -161,8 +162,12 @@ class ProgramRequirement(CommonRequirement):
 
     wrapper_class = ProgramRequirementWrapper
 
-    def __init__(self, name, default_value=None):
-        super(ProgramRequirement, self).__init__(name, default_value if default_value is not None else name)
+    def __init__(self, name, default_value=None, failure_comment=None):
+        if default_value is None:
+            default_value = name
+        if failure_comment is None:
+            failure_comment = 'install package providing %s program' % name
+        super(ProgramRequirement, self).__init__(name, default_value=default_value, failure_comment=failure_comment)
 
     def _compute_ok(self, value):
         try:

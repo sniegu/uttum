@@ -93,7 +93,6 @@ class Config(ConfigObject):
     twmnc = ProgramRequirement('twmnc')
     msmtp = ProgramRequirement('msmtp')
     uttum = ProgramRequirement('uttum')
-    notify_i3status = ProgramRequirement('notify_i3status')
 
     uttumrc_path = FileRequirement('uttumrc path')
     config_path = PathRequirement('configuration path')

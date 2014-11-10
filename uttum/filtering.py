@@ -29,7 +29,5 @@ def filter(account, folder='INBOX', kind='new'):
 
         sys.stdout.flush()
 
-        uttumrc.notify_i3status(silent=True, throw=False)
-
     print("")
 
