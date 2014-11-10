@@ -10,7 +10,7 @@ class Message(object):
 
     def __init__(self, name):
         self.name = name
-        self.message_path = path.join(uttumrc.queue_path, self.name)
+        self.message_path = uttumrc.queue_path / self.name
         self.content_file = path.join(self.message_path, 'content')
         self.arguments_file = path.join(self.message_path, 'arguments')
         self.pid_file = path.join(self.message_path, 'pid')

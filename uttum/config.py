@@ -169,7 +169,7 @@ def generate():
 
         for a in uttumrc.accounts.values():
             print('syncing: %s' % a)
-            with utils.write_file(a.mailcheckrc) as mailcheck_file:
+            with utils.write_file(a.mailcheckrc.value) as mailcheck_file:
                 for f in a.folders.values():
                     print('syncing: %s' % f)
                     shortcut = f.real_shortcut

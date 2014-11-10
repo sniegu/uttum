@@ -18,15 +18,20 @@ class CommonRequirementWrapper(object):
         self.requirement = requirement
 
     @property
+    def value_silent(self):
+        return self.requirement._get_value(self.instance)
+
+    @property
     def value(self):
-        return self.requirement._get_value(self.instance, self.requirement.default_value)
+        self.raise_for_ok()
+        return self.value_silent
 
     @property
     def name(self):
         return self.requirement.name
 
     def __str__(self):
-        return (self.value if self.value is not None else '<none>')
+        return (self.value_silent if self.value_silent is not None else '<none>')
 
     __unicode__ = __str__
     __repr__ = __str__
@@ -41,7 +46,7 @@ class CommonRequirementWrapper(object):
 
     def raise_for_ok(self):
         if not self.ok:
-            raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value))
+            raise RequirementNotSatisfied('%s is not properly configured: %s' % (self.name, self.value_silent))
 
 
 
@@ -63,8 +68,11 @@ class CommonRequirement(object):
     def _set_ok(self, instance, ok):
         return setattr(instance, '_%s_ok' % self.name, ok)
 
-    def _get_value(self, instance, default):
-        return getattr(instance, '_%s_value' % self.name, default)
+    def _get_value(self, instance):
+        n = '_%s_value' % self.name
+        if not hasattr(instance, n):
+            setattr(instance, n, self.default_value)
+        return getattr(instance, n)
 
     def _set_value(self, instance, value):
         return setattr(instance, '_%s_value' % self.name, self._set_transform(value))
@@ -82,7 +90,7 @@ class CommonRequirement(object):
     def _is_ok(self, instance):
         ok = self._get_ok(instance)
         if ok is None:
-            value = self._get_value(instance, self.default_value)
+            value = self._get_value(instance)
             if value is None:
                 ok = False
             else:
@@ -160,11 +168,17 @@ class FileRequirementWrapper(FilePathRequirementWrapper):
 class PathRequirementWrapper(FilePathRequirementWrapper):
 
     def __div__(self, other):
-        return path.join(self.value, other)
+        return path.join(self.value_silent, other)
+
+    __truediv__ = __div__
 
     def __iter__(self):
         self.raise_for_ok()
         return os.listdir(self.value).__iter__()
+
+    def assure(self):
+        assure_path(self.value_silent)
+
 
 class FilePathRequirement(CommonRequirement):
 

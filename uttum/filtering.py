@@ -19,17 +19,15 @@ def filter(account, folder='INBOX', kind='new'):
         if not path.exists(msg_path):
             continue
 
-        failed = False
         with open(msg_path) as msg_file:
-            if not uttumrc.procmail([account.procmailrc], stdin=msg_file, throw=False):
-                failed = True
+            if uttumrc.procmail([account.procmailrc.value], stdin=msg_file, throw=False):
+                print('.', end="")
+                os.rename(msg_path, path.join(uttumrc.mail_path.value, 'sorted', msg))
+            else:
+                print('E', end="")
+                print('failed to process %s' % msg)
 
-        print('E' if failed else '.', end="")
         sys.stdout.flush()
-        if failed:
-            print('failed to process %s' % msg)
-        else:
-            os.rename(msg_path, path.join(uttumrc.mail_path, 'sorted', msg))
 
         uttumrc.notify_i3status(silent=True, throw=False)
 
