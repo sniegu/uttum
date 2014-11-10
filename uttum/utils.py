@@ -280,9 +280,13 @@ def scoped_file(filepath, content):
     finally:
         os.remove(filepath)
 
+
 def notify(line, good=0):
+    from .config import uttumrc
+    if not uttumrc.twmnc:
+        return
     good = int(good)
-    subprocess.Popen(['twmnc', '--content', line, '--fg', '#859900' if good == 0 else '#dc322f'])
+    uttumrc.twmnc(['--content', line, '--fg', '#859900' if good == 0 else '#dc322f'], async=True)
 
 
 def assure_path(p):
