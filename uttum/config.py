@@ -83,6 +83,20 @@ class Account(ConfigObject):
         # return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
 
 
+UTTUMRC_TEMPLATE = """
+# rename this account
+provider = uttumrc.account('provider')
+# uncomment this to disable filtering for this account
+# provider.procmailrc = None
+
+# uncomment this to disable procmail (filtering) at all
+# uttumrc.procmail = None
+
+# define a folder named 'stuff'
+provider.folder('stuff', color='#FF0000')
+provider.folder('long-project-name', shortcut='project')
+provider.folder('not-interesting', notify=False)
+"""
 
 
 class Config(ConfigObject):
@@ -94,7 +108,7 @@ class Config(ConfigObject):
     msmtp = ProgramRequirement('msmtp')
     uttum = ProgramRequirement('uttum')
 
-    uttumrc_path = FileRequirement('uttumrc path')
+    uttumrc_path = FileRequirement('uttumrc path', template=UTTUMRC_TEMPLATE)
     config_path = PathRequirement('configuration path')
     muttrc_path = FileRequirement('muttrc snippet file')
     queue_path = PathRequirement('messages queue path')
@@ -134,6 +148,8 @@ class Config(ConfigObject):
 uttumrc = Config()
 
 def load_config():
+
+    uttumrc.uttumrc_path.try_resolve_if_needed()
 
     globs = {'uttumrc': uttumrc}
     from six import exec_

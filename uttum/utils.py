@@ -55,6 +55,11 @@ class CommonRequirementWrapper(object):
     def try_resolve(self):
         return self.requirement.failure_comment
 
+    def try_resolve_if_needed(self):
+        if self.enabled and not self.ok:
+            return self.try_resolve()
+        return None
+
     def _reset_ok(self):
         self.requirement._reset_ok(self.instance)
 
@@ -162,12 +167,12 @@ class ProgramRequirement(CommonRequirement):
 
     wrapper_class = ProgramRequirementWrapper
 
-    def __init__(self, name, default_value=None, failure_comment=None):
+    def __init__(self, name, default_value=None, failure_comment=None, *args, **kwargs):
         if default_value is None:
             default_value = name
         if failure_comment is None:
             failure_comment = 'install package providing %s program' % name
-        super(ProgramRequirement, self).__init__(name, default_value=default_value, failure_comment=failure_comment)
+        super(ProgramRequirement, self).__init__(name, default_value=default_value, failure_comment=failure_comment, *args, **kwargs)
 
     def _compute_ok(self, value):
         try:
@@ -182,7 +187,23 @@ class FilePathRequirementWrapper(CommonRequirementWrapper):
     pass
 
 class FileRequirementWrapper(FilePathRequirementWrapper):
-    pass
+
+    def try_resolve(self):
+        if self.requirement.template is None:
+            return self.requirement.failure_comment
+
+        filename = self.value_silent
+        if path.exists(filename):
+            raise Exception('file already exists')
+        print('creating file: %s' % filename)
+        with open(filename, 'w') as f:
+            f.write(self.requirement.template)
+
+        subprocess.check_call([path.expandvars('$EDITOR'), filename])
+
+        return 'created file: %s' % filename
+
+
 
 class PathRequirementWrapper(FilePathRequirementWrapper):
 
@@ -212,6 +233,10 @@ class FilePathRequirement(CommonRequirement):
 class FileRequirement(FilePathRequirement):
 
     wrapper_class = FileRequirementWrapper
+
+    def __init__(self, name, template=None, *args, **kwargs):
+        super(FileRequirement, self).__init__(name, *args, **kwargs)
+        self.template = template
 
 
 
