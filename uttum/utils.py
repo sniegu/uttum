@@ -24,6 +24,10 @@ class CommonRequirementWrapper(object):
         return self.value_silent is not None
 
     @property
+    def invalid(self):
+        return (self.value_silent is not None) and not self.ok
+
+    @property
     def value(self):
         self.raise_for_ok()
         return self.value_silent

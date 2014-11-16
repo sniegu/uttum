@@ -4,6 +4,7 @@ from os import path
 import os
 from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonRequirement, CommonRequirementWrapper
 from . import utils
+from . exceptions import SentryException
 
 debug = print
 
@@ -76,6 +77,8 @@ class Account(ConfigObject):
 
     def find_folders(self):
 
+        uttumrc.raise_for_sentry()
+
         for name in self.mailpath:
             if 'cur' in os.listdir(self.mailpath / name):
                 self.folder(name)
@@ -126,6 +129,7 @@ class Config(ConfigObject):
     mail_path = PathRequirement('mail path')
     merged_path = PathRequirement('merged mailbox path')
     accounts_path = PathRequirement('accounts path')
+    sentry_path = PathRequirement('sentry path')
 
     def __init__(self):
 
@@ -137,6 +141,8 @@ class Config(ConfigObject):
         self.queue_path = self.config_path / 'queue'
         self.mail_path = '~/.mail'
         self.merged_path = self.mail_path / 'merged'
+
+        self.sentry_path  = self.mail_path / 'sentry'
 
         self.accounts = {}
         self.freeze_time = 10
@@ -154,6 +160,10 @@ class Config(ConfigObject):
         for a in self.accounts.values():
             for r in a.requirements:
                 yield r
+
+    def raise_for_sentry(self):
+        if self.sentry_path.invalid:
+            raise SentryException()
 
 
 uttumrc = Config()

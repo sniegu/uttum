@@ -7,3 +7,4 @@ class RequirementNotSatisfied(UttumException):
 
 class SentryException(UttumException):
     pass
+

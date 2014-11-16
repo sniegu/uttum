@@ -8,16 +8,21 @@ from .config import uttumrc
 
 MAIL_MATCHER = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
 
+def add(out, text, name, color='#cb4b16'):
+    out.append(dict(color=color, name=name, full_text=text))
+
 # TODO: this is to be removed and to make a real status
 def check_all():
 
-    if not uttumrc.mailcheck:
-        return
-    encoding = locale.getdefaultlocale()[1]
     out = []
 
-    def add(text, name, color='#cb4b16'):
-        out.append(dict(color=color, name=name, full_text=text))
+    if not uttumrc.mailcheck:
+        add(out, 'missing mailcheck program')
+        return out
+
+    if uttumrc.sentry_path.invalid:
+        add(out, 'sentry file not available')
+        return out
 
     for account in uttumrc.accounts.values():
         for m in uttumrc.mailcheck(['-c', '-f', account.mailcheckrc.value], lines=True):
@@ -29,12 +34,12 @@ def check_all():
                 folder = account.folders[folder_name]
                 number = match.group(1)
                 if folder.notify:
-                    add(folder.shortcut + ': ' + number, folder.shortcut, color=folder.color)
+                    add(out, folder.shortcut + ': ' + number, folder.shortcut, color=folder.color)
 
 
     queued = sum(1 for _ in Message.list_all())
     if queued > 0:
-        add('queued: %s' % queued, 'queued', '#6c71c4')
+        add(out, 'queued: %s' % queued, 'queued', '#6c71c4')
     return out
 
 
