@@ -5,11 +5,9 @@ import signal
 import fcntl
 import os
 from os import path
+from . exceptions import RequirementNotSatisfied
 
 import subprocess
-
-class RequirementNotSatisfied(Exception):
-    pass
 
 class CommonRequirementWrapper(object):
 

@@ -4,9 +4,6 @@ from __future__ import print_function, absolute_import
 
 
 from uttum import utils
-from uttum.messages import Message
-from uttum import sending, syncing, config, filtering, checking
-from uttum.config import uttumrc
 import signal
 import argparse
 import sys
@@ -14,6 +11,83 @@ import sys
 
 def noop_handler(signum, frame):
     print('received signal')
+
+def process(args):
+
+    def accounts():
+        from uttum.config import uttumrc
+        if len(args.accounts) == 0:
+            return uttumrc.accounts.values()
+        else:
+            return [uttumrc.accounts[a] for a in args.accounts]
+
+    def messages():
+
+        from uttum.messages import Message
+
+        if len(args.messages) == 0:
+            return list(Message.list_all())
+        else:
+            return [Message(m) for m in args.messages]
+
+
+    from uttum import sending, syncing, config, filtering, checking
+
+    if args.check_all:
+        print(checking.check_all())
+
+    if args.show:
+        config.show()
+
+    if args.generate:
+        config.generate()
+
+
+    if args.abort:
+        sending.abort()
+
+    if args.queue:
+        sending.queue(other)
+
+    if args.status:
+        for m in messages():
+            sending.status(m)
+
+    if args.send:
+        for m in messages():
+            if not sending.send(m):
+                sys.exit(1)
+
+    if args.freeze:
+        for m in messages():
+            sending.freeze(m)
+
+
+    if args.check:
+        syncing.check()
+
+    if args.check_bg:
+        syncing.check_bg()
+
+    if args.sync:
+        for a in accounts():
+            (syncing.unlocked_sync if args.unlocked else syncing.sync)(a)
+
+    if args.filter:
+        for a in accounts():
+            filtering.filter(a, folder=args.folder, kind=args.category)
+
+    for n in args.notifies:
+        utils.notify(n)
+
+    if args.reqs:
+        from uttum.config import uttumrc
+        if not uttumrc.validate_requirements():
+            sys.exit(1)
+
+
+    if args.shell:
+        from IPython import embed ; embed()
 
 
 if __name__ == '__main__':
@@ -50,83 +124,20 @@ if __name__ == '__main__':
         argv = list(sys.argv[1:])
 
         try:
-            i = argv.index('--')
-            args = argv[0:i]
-            other = argv[i + 1:]
-        except ValueError:
-            args, other = argv, []
 
-        args = parser.parse_args(args)
+            try:
+                i = argv.index('--')
+                args = argv[0:i]
+                other = argv[i + 1:]
+            except ValueError:
+                args, other = argv, []
 
+            args = parser.parse_args(args)
 
-        def accounts():
-            if len(args.accounts) == 0:
-                return uttumrc.accounts.values()
-            else:
-                return [uttumrc.accounts[a] for a in args.accounts]
+            process(args)
 
-        def messages():
-            if len(args.messages) == 0:
-                return list(Message.list_all())
-            else:
-                return [Message(m) for m in args.messages]
-
-
-
-        if args.check_all:
-            print(checking.check_all())
-
-
-        if args.show:
-            config.show()
-
-        if args.generate:
-            config.generate()
-
-
-        if args.abort:
-            sending.abort()
-
-        if args.queue:
-            sending.queue(other)
-
-        if args.status:
-            for m in messages():
-                sending.status(m)
-
-        if args.send:
-            for m in messages():
-                if not sending.send(m):
-                    sys.exit(1)
-
-        if args.freeze:
-            for m in messages():
-                sending.freeze(m)
-
-
-        if args.check:
-            syncing.check()
-
-        if args.check_bg:
-            syncing.check_bg()
-
-        if args.sync:
-            for a in accounts():
-                (syncing.unlocked_sync if args.unlocked else syncing.sync)(a)
-
-        if args.filter:
-            for a in accounts():
-                filtering.filter(a, folder=args.folder, kind=args.category)
-
-        for n in args.notifies:
-            utils.notify(n)
-
-        if args.reqs:
-            if not uttumrc.validate_requirements():
-                sys.exit(1)
-
-
-        if args.shell:
-            from IPython import embed ; embed()
-
+        except Exception as e:
+            # print('error: %s' % e, file=sys.stderr)
+            raise
+            # sys.exit(1)
 
