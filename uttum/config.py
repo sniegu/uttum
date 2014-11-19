@@ -34,6 +34,7 @@ class Folder(ConfigObject):
     shortcut = None
     alias = None
     mapping = None
+    # TODO: is the default (spoolfile)
 
     IGNORE = ('name', 'account')
 
@@ -72,6 +73,7 @@ class Account(ConfigObject):
     procmailrc = FileRequirement('procmail configuration')
     mailcheckrc = FileRequirement('mailcheck configuration')
     mailpath = PathRequirement('mailbox path')
+    # TODO: default_address
 
     def __init__(self, name):
         self.name = name
