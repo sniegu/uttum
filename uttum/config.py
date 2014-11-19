@@ -33,6 +33,7 @@ class Folder(ConfigObject):
     color = '#cb4b16'
     shortcut = None
     alias = None
+    mapping = None
 
     IGNORE = ('name', 'account')
 
@@ -248,6 +249,9 @@ def generate():
                     source = f.mailpath
 
                     muttrc.write('mailboxes +%s\n' % f.shortcut)
+                    if f.mapping is not None:
+                        muttrc.write('macro index %s "<change-folder>\cu=%s<enter>" "change folder to %s %s"\n' % (f.mapping, f.shortcut, f.account.name, f.name))
+
                     mailcheck_file.write('%s\n' % f.mailpath)
 
                     print('-- creating shortcut: %s -> %s' % (link_name, source))
