@@ -4,7 +4,7 @@ from os import path
 import os
 from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonRequirement, CommonRequirementWrapper
 from . import utils
-from . exceptions import SentryException
+from . exceptions import SentryException, DeprecatedException
 
 debug = print
 
@@ -29,15 +29,34 @@ class ConfigObject(object):
 
 class Folder(ConfigObject):
     notify = True
+    link = True
     color = '#cb4b16'
     shortcut = None
+    alias = None
 
     IGNORE = ('name', 'account')
 
     def __init__(self, account, name):
         self.account = account
         self.name = name
-        self.shortcut = '%s_%s' % (self.name, self.account.name)
+        self.alias = name
+
+    @property
+    def shortcut(self):
+        return '%s_%s' % (self.alias, self.account.name)
+
+    @shortcut.setter
+    def shortcut(self, value):
+        raise DeprecatedException("folder's shortcut attribute is deprecated, use alias instead")
+
+    @property
+    def ignore(self):
+        return not (self.link or self.notify)
+
+    @ignore.setter
+    def ignore(self, value):
+        self.link = not value
+        self.notify = not value
 
     @property
     def mailpath(self):
@@ -223,6 +242,8 @@ def generate():
         for a in uttumrc.accounts.values():
             with utils.write_file(a.mailcheckrc.value_silent) as mailcheck_file:
                 for f in a.folders.values():
+                    if not f.link:
+                        continue
                     link_name = uttumrc.merged_path / f.shortcut
                     source = f.mailpath
 

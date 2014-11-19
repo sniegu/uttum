@@ -2,6 +2,9 @@
 class UttumException(Exception):
     pass
 
+class DeprecatedException(UttumException):
+    pass
+
 class RequirementNotSatisfied(UttumException):
     pass
 
