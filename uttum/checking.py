@@ -34,7 +34,7 @@ def check_all():
                 folder = account.folders[folder_name]
                 number = match.group(1)
                 if folder.notify:
-                    add(out, folder.shortcut + ': ' + number, folder.shortcut, color=folder.color)
+                    add(out, folder.alias + ': ' + number, folder.alias, color=folder.color)
 
 
     queued = sum(1 for _ in Message.list_all())
