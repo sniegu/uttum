@@ -14,7 +14,7 @@ def unlocked_sync(account):
 
 
 def sync(account):
-    with utils.locked_file(uttumrc.mail_path / ('.%s-sync.lock' % account.name)):
+    with utils.locked_file(uttumrc.mail_path / ('.%s-sync.lock' % account.name), timeout=5):
         unlocked_sync(account)
 
 

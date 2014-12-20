@@ -6,6 +6,8 @@ import fcntl
 import os
 from os import path
 from . exceptions import RequirementNotSatisfied, LockException
+from datetime import datetime, timedelta
+from time import sleep
 
 import subprocess
 
@@ -255,13 +257,19 @@ class PathRequirement(FilePathRequirement):
 
 
 @contextmanager
-def locked_file(filename):
+def locked_file(filename, timeout=0):
     with open(filename, 'w') as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except Exception as e:
-            # print('failed to lock: %s' % e)
-            raise LockException('failed to lock: %s' % filename)
+        end = datetime.now() + timedelta(seconds=timeout)
+        while True:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except Exception as e:
+                if datetime.now() >= end:
+                    raise LockException('failed to lock: %s' % filename)
+                else:
+                    print('retrying to lock: %s' % filename)
+            sleep(1)
 
         try:
             yield
