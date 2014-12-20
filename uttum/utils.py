@@ -5,7 +5,7 @@ import signal
 import fcntl
 import os
 from os import path
-from . exceptions import RequirementNotSatisfied
+from . exceptions import RequirementNotSatisfied, LockException
 
 import subprocess
 
@@ -257,7 +257,12 @@ class PathRequirement(FilePathRequirement):
 @contextmanager
 def locked_file(filename):
     with open(filename, 'w') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except Exception as e:
+            # print('failed to lock: %s' % e)
+            raise LockException('failed to lock: %s' % filename)
+
         try:
             yield
         finally:

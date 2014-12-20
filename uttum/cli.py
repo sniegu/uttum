@@ -7,6 +7,7 @@ from uttum import utils
 import signal
 import argparse
 import sys
+from uttum.exceptions import UttumException
 
 
 def noop_handler(signum, frame):
@@ -136,6 +137,9 @@ if __name__ == '__main__':
 
             process(args)
 
+        except UttumException as e:
+            print('%s' % e)
+            sys.exit(1)
         except Exception as e:
             # print('error: %s' % e, file=sys.stderr)
             raise

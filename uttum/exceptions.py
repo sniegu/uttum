@@ -11,3 +11,5 @@ class RequirementNotSatisfied(UttumException):
 class SentryException(UttumException):
     pass
 
+class LockException(UttumException):
+    pass
