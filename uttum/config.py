@@ -5,6 +5,7 @@ import os
 from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonRequirement, CommonRequirementWrapper
 from . import utils
 from . exceptions import SentryException, DeprecatedException
+from contextlib import contextmanager
 
 debug = print
 
@@ -104,6 +105,10 @@ class Account(ConfigObject):
         for name in self.mailpath:
             if 'cur' in os.listdir(self.mailpath / name):
                 self.folder(name)
+
+
+    def locked(self, timeout=5):
+        return utils.locked_file(uttumrc.mail_path / ('.%s-sync.lock' % self.name), timeout=5)
 
 
 

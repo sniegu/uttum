@@ -8,10 +8,15 @@ import signal
 import argparse
 import sys
 from uttum.exceptions import UttumException
+from contextlib import contextmanager
 
 
 def noop_handler(signum, frame):
     print('received signal')
+
+@contextmanager
+def dummy_context_manager():
+    yield
 
 def process(args):
 
@@ -34,6 +39,12 @@ def process(args):
         else:
             return [Message(m) for m in args.messages]
 
+    def locked(account):
+        if args.unlocked:
+            return dummy_context_manager()
+        else:
+            return account.locked()
+
 
     from uttum import sending, syncing, config, filtering, checking
 
@@ -45,7 +56,6 @@ def process(args):
 
     if args.generate:
         config.generate()
-
 
     if args.abort:
         sending.abort()
@@ -66,7 +76,6 @@ def process(args):
         for m in messages():
             sending.freeze(m)
 
-
     if args.check:
         syncing.check()
 
@@ -74,16 +83,19 @@ def process(args):
         syncing.check_bg()
 
     if args.sync:
-        for a in accounts():
-            (syncing.unlocked_sync if args.unlocked else syncing.sync)(a)
+        for account in accounts():
+            with locked(account):
+                syncing.sync(account)
 
     if args.create:
-        for a in accounts(default_all=False):
-            syncing.create_folder(a, args.folder)
+        for account in accounts(default_all=False):
+            with locked(account):
+                syncing.create_folder(a, args.folder)
 
     if args.filter:
-        for a in accounts():
-            filtering.filter(a, folder=args.folder, kind=args.category)
+        for account in accounts():
+            with locked(account):
+                filtering.filter(account, folder=args.folder, kind=args.category)
 
     for n in args.notifies:
         utils.notify(n)
@@ -92,7 +104,6 @@ def process(args):
         from uttum.config import uttumrc
         if not uttumrc.validate_requirements():
             sys.exit(1)
-
 
     if args.shell:
         from IPython import embed ; embed()
@@ -116,7 +127,7 @@ if __name__ == '__main__':
     parser.add_argument('-y', '--sync', dest='sync', action='store_true', help='')
     parser.add_argument('--unlocked', dest='unlocked', action='store_true', help='')
     parser.add_argument('-f', '--filter', dest='filter', action='store_true', help='')
-    parser.add_argument('--folder', dest='folder', action='store', default='INBOX')
+    parser.add_argument('-d', '--folder', dest='folders', action='append', default=[])
     parser.add_argument('-c', '--current', dest='category', action='store_const', const='cur', default='new')
     parser.add_argument('--notify', dest='notifies', action='append', default=[])
     parser.add_argument('--create', dest='create', action='store_true', default=False)
