@@ -144,6 +144,7 @@ class Config(ConfigObject):
     msmtp = ProgramRequirement('msmtp')
     uttum = ProgramRequirement('uttum')
 
+    offlineimaprc_path = FileRequirement('offlineimap path')
     uttumrc_path = FileRequirement('uttumrc path', template=UTTUMRC_TEMPLATE)
     config_path = PathRequirement('configuration path')
     muttrc_path = FileRequirement('muttrc snippet file')
@@ -156,6 +157,8 @@ class Config(ConfigObject):
     def __init__(self):
 
         self.config_path = '~/.uttum'
+        self.offlineimaprc_path = '~/.offlineimap'
+
         self.uttumrc_path = self.config_path / 'uttumrc'
         self.muttrc_path = self.config_path / 'muttrc'
         self.accounts_path = self.config_path / 'accounts'

@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 
-from os import path, mkdir
+from os import path, mkdir, walk, remove
 from . import utils
 from .config import uttumrc, Folder
 from . import filtering
@@ -46,7 +46,17 @@ def create_folder(account, folder_name):
         unlocked_sync_folder(folder)
 
         shutil.rmtree(folder.mailpath)
-        shutil.rmtree(folder.mailpath)
+
+        for root, dirs, files in walk(uttumrc.offlineimaprc_path.value):
+            for f in files:
+                if f == folder_name:
+                    full = path.join(root, f)
+                    print('removing %s' % full)
+                    remove(full)
+
+        unlocked_sync_folder(folder)
+
+        # shutil.rmtree(folder.mailpath)
         # Repository-psnc-remote/FolderValidity/newdir2
         # Account-psnc/LocalStatus-sqlite/newdir2
 
