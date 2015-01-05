@@ -8,6 +8,12 @@ from i3pystatus.core.util import convert_position
 class Uttum(IntervalModule):
     _status = None
 
+    settings = (
+        ("missing_color", "missing color"),
+    )
+
+    missing_color = '#ff0000'
+
     def init(self):
         pass
 
@@ -25,7 +31,7 @@ class Uttum(IntervalModule):
             for s in self._status:
                 s["instance"] = str(id(self)) + "_" + s["name"]
         except SentryException as e:
-            self._status = [dict(color='#ff0000', full_text='uttum', name='uttum')]
+            self._status = [dict(color=self.missing_color, full_text='(uttum)', name='uttum')]
         except UttumException as e:
             self._status = [dict(color='#ff0000', full_text='uttum: %s' % e, name='uttum')]
 
