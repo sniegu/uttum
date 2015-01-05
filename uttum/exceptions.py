@@ -13,3 +13,6 @@ class SentryException(UttumException):
 
 class LockException(UttumException):
     pass
+
+class CliException(UttumException):
+    pass

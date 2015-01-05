@@ -15,10 +15,13 @@ def noop_handler(signum, frame):
 
 def process(args):
 
-    def accounts():
+    def accounts(default_all=True):
         from uttum.config import uttumrc
         if len(args.accounts) == 0:
-            return uttumrc.accounts.values()
+            if default_all:
+                return uttumrc.accounts.values()
+            else:
+                raise CliException('must explicitely specify at least one account')
         else:
             return [uttumrc.accounts[a] for a in args.accounts]
 
@@ -74,6 +77,10 @@ def process(args):
         for a in accounts():
             (syncing.unlocked_sync if args.unlocked else syncing.sync)(a)
 
+    if args.create:
+        for a in accounts(default_all=False):
+            syncing.create_folder(a, args.folder)
+
     if args.filter:
         for a in accounts():
             filtering.filter(a, folder=args.folder, kind=args.category)
@@ -112,6 +119,7 @@ if __name__ == '__main__':
     parser.add_argument('--folder', dest='folder', action='store', default='INBOX')
     parser.add_argument('-c', '--current', dest='category', action='store_const', const='cur', default='new')
     parser.add_argument('--notify', dest='notifies', action='append', default=[])
+    parser.add_argument('--create', dest='create', action='store_true', default=False)
 
     parser.add_argument('--queue', dest='queue', action='store_true')
     parser.add_argument('--check-all', dest='check_all', action='store_true')
