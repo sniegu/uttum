@@ -16,8 +16,16 @@ def sync(account):
 
     uttumrc.offlineimap(['-a', account.name])
 
-    filtering.filter(account)
-    filtering.filter(account, kind='cur')
+    filtering.filter(account, 'INBOX')
+    filtering.filter(account, 'INBOX', kind='cur')
+
+
+def fetch(account):
+
+    sync_folder(account.folders['INBOX'])
+
+    filtering.filter(account, 'INBOX')
+    filtering.filter(account, 'INBOX', kind='cur')
 
 
 def create_folder(account, folder_name):
@@ -51,7 +59,7 @@ def check():
     utils.notify('checking mail...')
     try:
         for a in uttumrc.accounts.values():
-            sync(a)
+            fetch(a)
     except:
         utils.notify('...failed to check mail', 1)
 

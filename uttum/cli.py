@@ -85,17 +85,31 @@ def process(args):
     if args.sync:
         for account in accounts():
             with locked(account):
-                syncing.sync(account)
+                if args.folders:
+                    for f in args.folders:
+                        syncing.sync_folder(account.folders[f])
+                else:
+                    syncing.sync(account)
+
+    if args.fetch:
+        for account in accounts():
+            with locked(account):
+                syncing.fetch(account)
 
     if args.create:
         for account in accounts(default_all=False):
             with locked(account):
-                syncing.create_folder(a, args.folder)
+                for f in args.folders:
+                    syncing.create_folder(account, f)
+
 
     if args.filter:
         for account in accounts():
             with locked(account):
-                filtering.filter(account, folder=args.folder, kind=args.category)
+                folders = args.folders if args.folders else ['INBOX']
+                for f in args.folders:
+                    filtering.filter(account, folder=f, kind=args.category)
+
 
     for n in args.notifies:
         utils.notify(n)
@@ -125,6 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('--freeze', dest='freeze', action='store_true', help='')
 
     parser.add_argument('-y', '--sync', dest='sync', action='store_true', help='')
+    parser.add_argument('-e', '--fetch', dest='fetch', action='store_true', default=False, help='')
     parser.add_argument('--unlocked', dest='unlocked', action='store_true', help='')
     parser.add_argument('-f', '--filter', dest='filter', action='store_true', help='')
     parser.add_argument('-d', '--folder', dest='folders', action='append', default=[])
