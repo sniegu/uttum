@@ -29,30 +29,29 @@ def fetch(account):
 
 
 def create_folder(account, folder_name):
-    with account.locked(timeout=5):
-        print('creating folder %s for account %s' % (folder_name, account))
-        sync(account)
+    print('creating folder %s for account %s' % (folder_name, account))
+    sync(account)
 
-        folder = Folder(account, folder_name)
-        maildir = Maildir(folder.mailpath, create=True)
-        message = MaildirMessage()
-        message.set_payload('dummy message')
-        maildir.add(message)
+    folder = Folder(account, folder_name)
+    maildir = Maildir(folder.mailpath, create=True)
+    message = MaildirMessage()
+    message.set_payload('dummy message')
+    maildir.add(message)
 
-        sync_folder(folder)
+    sync_folder(folder)
 
-        sync_folder(folder)
+    sync_folder(folder)
 
-        shutil.rmtree(folder.mailpath)
+    shutil.rmtree(folder.mailpath)
 
-        for root, dirs, files in walk(uttumrc.offlineimaprc_path.value):
-            for f in files:
-                if f == folder_name:
-                    full = path.join(root, f)
-                    print('removing %s' % full)
-                    remove(full)
+    for root, dirs, files in walk(uttumrc.offlineimaprc_path.value):
+        for f in files:
+            if f == folder_name:
+                full = path.join(root, f)
+                print('removing %s' % full)
+                remove(full)
 
-        sync_folder(folder)
+    sync_folder(folder)
 
 
 def check():
