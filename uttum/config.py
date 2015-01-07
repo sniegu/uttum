@@ -75,6 +75,22 @@ class Folder(ConfigObject, predicates.ActionMount):
     def move(self, message):
         print('moving %s to %s' % (message, self))
 
+    def filter(self, predicate):
+        self.bind_predicate(predicate)
+        return self
+
+
+class FoldersWrapper(object):
+
+    def __init__(self, account):
+        self.account = account
+
+    def __getattr__(self, name):
+        return self.account.folder(name)
+
+    def __iter__(self):
+        return self.account._folders.values()
+
 
 class Account(ConfigObject):
 
@@ -86,7 +102,7 @@ class Account(ConfigObject):
 
     def __init__(self, name):
         self.name = name
-        self.folders = {}
+        self._folders = {}
 
         self.config_path = uttumrc.accounts_path / self.name
         self.procmailrc = self.config_path / 'procmailrc'
@@ -96,11 +112,11 @@ class Account(ConfigObject):
 
     def folder(self, name, **kwargs):
         try:
-            f = self.folders[name]
+            f = self._folders[name]
         except KeyError:
             f = Folder(self, name)
             f.account = self
-            self.folders[name] = f
+            self._folders[name] = f
 
         for k, v in kwargs.items():
             setattr(f, k, v)
@@ -127,6 +143,10 @@ class Account(ConfigObject):
 
         # return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
 
+    @property
+    def folders(self):
+        return FoldersWrapper(self)
+
 
 UTTUMRC_TEMPLATE = """
 # uttumrc.procmail = None
@@ -148,6 +168,8 @@ provider.folder('stuff', color='#FF0000')
 provider.folder('long-project-name', shortcut='project')
 provider.folder('not-interesting', notify=False)
 """
+
+
 
 
 class Config(ConfigObject):
@@ -226,7 +248,7 @@ def show():
 
     for a in uttumrc.accounts.values():
         print('* account: %s' % a.name)
-        for f in a.folders.values():
+        for f in a.folders:
             print('    * folder: %s' % f.name)
             for k, v in f.__dict__.items():
                 if k not in Folder.IGNORE:
@@ -264,7 +286,7 @@ def generate():
 
         for a in uttumrc.accounts.values():
             with utils.write_file(a.mailcheckrc.value_silent) as mailcheck_file:
-                for f in a.folders.values():
+                for f in a.folders:
                     if not f.link:
                         continue
                     link_name = uttumrc.merged_path / f.shortcut

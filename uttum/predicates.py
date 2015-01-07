@@ -36,7 +36,7 @@ class Predicate(object):
     def matches(self, context):
         raise NotImplementedError()
 
-    def __gt__(self, other):
+    def __ge__(self, other):
         if isinstance(other, ActionMount):
             other.bind_predicate(self)
         else:
