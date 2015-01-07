@@ -8,6 +8,9 @@ class DeprecatedException(UttumException):
 class RequirementNotSatisfied(UttumException):
     pass
 
+class ConfigurationException(UttumException):
+    pass
+
 class SentryException(UttumException):
     pass
 

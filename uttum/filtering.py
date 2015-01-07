@@ -6,6 +6,7 @@ import sys
 import os
 
 
+
 def filter(account, folder='INBOX', kind='new'):
 
     if not uttumrc.procmail or not account.procmailrc:
@@ -19,15 +20,27 @@ def filter(account, folder='INBOX', kind='new'):
         if not path.exists(msg_path):
             continue
 
-        with open(msg_path) as msg_file:
-            if uttumrc.procmail([account.procmailrc.value], stdin=msg_file, throw=False):
-                print('.', end="")
-                os.rename(msg_path, path.join(uttumrc.mail_path.value, 'sorted', msg))
-            else:
-                print('E', end="")
-                print('failed to process %s' % msg)
+        print('processing message: %s' % msg)
 
-        sys.stdout.flush()
+        for rule in uttumrc.rules:
+            if rule.process(msg):
+                print('rule %s matches' % (rule.predicate))
+                break
+            else:
+                print('rule %s does not match' % (rule.predicate))
+        else:
+            print('nothing matched')
+
+
+        # with open(msg_path) as msg_file:
+        #     if uttumrc.procmail([account.procmailrc.value], stdin=msg_file, throw=False):
+        #         print('.', end="")
+        #         os.rename(msg_path, path.join(uttumrc.mail_path.value, 'sorted', msg))
+        #     else:
+        #         print('E', end="")
+        #         print('failed to process %s' % msg)
+
+        # sys.stdout.flush()
 
     print("")
 

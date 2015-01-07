@@ -6,6 +6,7 @@ from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonR
 from . import utils
 from . exceptions import SentryException, DeprecatedException
 from contextlib import contextmanager
+from . import predicates
 
 debug = print
 
@@ -28,7 +29,7 @@ class ConfigObject(object):
         return result
 
 
-class Folder(ConfigObject):
+class Folder(ConfigObject, predicates.ActionMount):
     notify = True
     link = True
     color = '#cb4b16'
@@ -68,6 +69,13 @@ class Folder(ConfigObject):
     def __str__(self):
         return 'folder %s:%s' % (self.account.name, self.name)
 
+    def bind_predicate(self, predicate):
+        uttumrc.rules.append(predicates.Rule(predicate, self.move))
+
+    def move(self, message):
+        print('moving %s to %s' % (message, self))
+
+
 class Account(ConfigObject):
 
     config_path = PathRequirement('config path')
@@ -96,6 +104,8 @@ class Account(ConfigObject):
 
         for k, v in kwargs.items():
             setattr(f, k, v)
+
+        return f
 
 
     def find_folders(self):
@@ -176,6 +186,8 @@ class Config(ConfigObject):
 
         self.accounts = {}
         self.freeze_time = 10
+
+        self.rules = list()
 
 
     def account(self, name):
