@@ -9,8 +9,6 @@ import os
 
 def filter(account, folder='INBOX', kind='new'):
 
-    if not uttumrc.procmail or not account.procmailrc:
-        return
 
     input_path = account.mailpath / ('%s/%s' % (folder, kind))
     debug('processing: %s' % input_path)
@@ -22,7 +20,7 @@ def filter(account, folder='INBOX', kind='new'):
 
         print('processing message: %s' % msg)
 
-        for rule in uttumrc.rules:
+        for rule in account.rules:
             if rule.process(msg):
                 print('rule %s matches' % (rule.predicate))
                 break
@@ -31,16 +29,18 @@ def filter(account, folder='INBOX', kind='new'):
         else:
             print('nothing matched')
 
+        if not uttumrc.procmail or not account.procmailrc:
+            continue
 
-        # with open(msg_path) as msg_file:
-        #     if uttumrc.procmail([account.procmailrc.value], stdin=msg_file, throw=False):
-        #         print('.', end="")
-        #         os.rename(msg_path, path.join(uttumrc.mail_path.value, 'sorted', msg))
-        #     else:
-        #         print('E', end="")
-        #         print('failed to process %s' % msg)
+        with open(msg_path) as msg_file:
+            if uttumrc.procmail([account.procmailrc.value], stdin=msg_file, throw=False):
+                print('.', end="")
+                os.rename(msg_path, path.join(uttumrc.mail_path.value, 'sorted', msg))
+            else:
+                print('E', end="")
+                print('failed to process %s' % msg)
 
-        # sys.stdout.flush()
+        sys.stdout.flush()
 
     print("")
 

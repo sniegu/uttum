@@ -1,5 +1,7 @@
 from __future__ import print_function, absolute_import
+
 from . import exceptions
+import re
 
 class ActionMount(object):
 
@@ -98,6 +100,44 @@ class ConjunctionPredicate(CompoundPredicate):
     def __str__(self):
         return '(' + ' and '.join(map(str, self.predicates)) + ')'
 
+
+class HeaderRegexPredicate(Predicate):
+
+    def __init__(self, header, regex):
+        self.header = header
+        self.regex = regex
+        self.compiled = re.compile(regex)
+
+    def matches(self, context):
+        return False
+
+    def __str__(self):
+        return '%s ~ %s' % (self.header, self.regex)
+
+
+def parse_predicate(name, value):
+    if '_' in name:
+        header, operator = name.split('_')
+    else:
+        header, operator = name, 'equals'
+
+    if operator == 'matches':
+        return HeaderRegexPredicate(header, value)
+
+    raise exceptions.ConfigurationException()
+
+def construct(*args, **kwargs):
+
+    predicates = list(args)
+
+    for k, v in kwargs.items():
+        predicates.append(parse_predicate(k, v))
+
+    if len(predicates) == 0:
+        raise exceptions.ConfigurationException()
+    return predicates[0] if len(predicates) == 1 else ConjunctionPredicate(*predicates)
+
+Q = construct
 true = TruePredicate()
 false = FalsePredicate()
 

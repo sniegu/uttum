@@ -20,14 +20,17 @@ def dummy_context_manager():
 
 def process(args):
 
-    def accounts(default_all=True):
+    def accounts(default_all=True, only_one=False):
         from uttum.config import uttumrc
         if len(args.accounts) == 0:
-            if default_all:
+            if default_all and not only_one:
                 return uttumrc.accounts.values()
             else:
                 raise CliException('must explicitely specify at least one account')
         else:
+            if only_one and len(args.accounts) != 1:
+                raise CliException('must explicitely specify exactly one account')
+
             return [uttumrc.accounts[a] for a in args.accounts]
 
     def messages():
@@ -120,7 +123,20 @@ def process(args):
             sys.exit(1)
 
     if args.shell:
+        from uttum.config import uttumrc
+
+        for account in accounts():
+            for f in args.folders:
+                folder = account.folder(f)
+
         from IPython import embed ; embed()
+
+    if args.introspect:
+        account = accounts(only_one=True)[0]
+        for m in args.introspect:
+            pass
+            # folder.mes
+        # folder =
 
 
 if __name__ == '__main__':
@@ -152,6 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--generate', dest='generate', action='store_true')
 
     parser.add_argument('--shell', dest='shell', action='store_true')
+    parser.add_argument('--introspect', dest='introspect', action='store', default=[])
     parser.add_argument('--reqs', dest='reqs', action='store_true', help='check requirements')
 
 

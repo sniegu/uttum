@@ -22,7 +22,7 @@ def sync(account):
 
 def fetch(account):
 
-    sync_folder(account.folders['INBOX'])
+    sync_folder(account.folders.INBOX)
 
     filtering.filter(account, 'INBOX')
     filtering.filter(account, 'INBOX', kind='cur')

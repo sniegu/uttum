@@ -7,6 +7,7 @@ from . import utils
 from . exceptions import SentryException, DeprecatedException
 from contextlib import contextmanager
 from . import predicates
+import mailbox
 
 debug = print
 
@@ -44,6 +45,7 @@ class Folder(ConfigObject, predicates.ActionMount):
         self.account = account
         self.name = name
         self.alias = name
+        self.maildir = mailbox.Maildir(self.mailpath, factory=None, create=False)
 
     @property
     def shortcut(self):
@@ -70,14 +72,18 @@ class Folder(ConfigObject, predicates.ActionMount):
         return 'folder %s:%s' % (self.account.name, self.name)
 
     def bind_predicate(self, predicate):
-        uttumrc.rules.append(predicates.Rule(predicate, self.move))
+        self.account.rules.append(predicates.Rule(predicate, self.move))
 
     def move(self, message):
         print('moving %s to %s' % (message, self))
 
-    def filter(self, predicate):
-        self.bind_predicate(predicate)
+    def filter(self, *args, **kwargs):
+        self.bind_predicate(predicates.construct(*args, **kwargs))
         return self
+
+    @property
+    def messages(self):
+        return self.maildir.values()
 
 
 class FoldersWrapper(object):
@@ -89,7 +95,7 @@ class FoldersWrapper(object):
         return self.account.folder(name)
 
     def __iter__(self):
-        return self.account._folders.values()
+        return self.account._folders.itervalues()
 
 
 class Account(ConfigObject):
@@ -103,6 +109,7 @@ class Account(ConfigObject):
     def __init__(self, name):
         self.name = name
         self._folders = {}
+        self.rules = list()
 
         self.config_path = uttumrc.accounts_path / self.name
         self.procmailrc = self.config_path / 'procmailrc'
@@ -209,7 +216,6 @@ class Config(ConfigObject):
         self.accounts = {}
         self.freeze_time = 10
 
-        self.rules = list()
 
 
     def account(self, name):

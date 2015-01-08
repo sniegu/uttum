@@ -29,9 +29,9 @@ def check_all():
             match = MAIL_MATCHER.match(m)
             if match:
                 folder_name = match.group(2)
-                if folder_name not in account.folders:
-                    continue
-                folder = account.folders[folder_name]
+                # if folder_name not in account.folders:
+                #     continue
+                folder = account.folder(folder_name)
                 number = match.group(1)
                 if folder.notify:
                     add(out, folder.alias + ': ' + number, folder.alias, color=folder.color)
