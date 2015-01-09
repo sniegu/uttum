@@ -35,12 +35,12 @@ def process(args):
 
     def messages():
 
-        from uttum.messages import Message
+        from uttum.messages import OutgoingMessage
 
         if len(args.messages) == 0:
-            return list(Message.list_all())
+            return list(OutgoingMessage.list_all())
         else:
-            return [Message(m) for m in args.messages]
+            return [OutgoingMessage(m) for m in args.messages]
 
     def locked(account):
         if args.unlocked:

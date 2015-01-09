@@ -3,7 +3,7 @@ from __future__ import print_function, absolute_import
 from . import utils
 import locale
 import re
-from .messages import Message
+from .messages import OutgoingMessage
 from .config import uttumrc
 
 MAIL_MATCHER = re.compile(r'You\ have\ (\d+)\ new\ (?:and\ (?:\d+)\ unread\ )?messages\ in\ /home/\w+/\.mail/.*/(.*)')
@@ -37,7 +37,7 @@ def check_all():
                     add(out, folder.alias + ': ' + number, folder.alias, color=folder.color)
 
 
-    queued = sum(1 for _ in Message.list_all())
+    queued = sum(1 for _ in OutgoingMessage.list_all())
     if queued > 0:
         add(out, 'queued: %s' % queued, 'queued', '#6c71c4')
     return out

@@ -6,7 +6,7 @@ from .config import uttumrc, debug
 from psutil import pid_exists
 import shutil
 
-class Message(object):
+class OutgoingMessage(object):
 
     def __init__(self, name):
         self.name = name
@@ -58,4 +58,4 @@ class Message(object):
     @staticmethod
     def list_all():
         for msg_path in uttumrc.queue_path:
-            yield Message(os.path.split(msg_path)[1])
+            yield OutgoingMessage(os.path.split(msg_path)[1])

@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import
 
 from uuid import uuid4
 import sys
-from .messages import Message
+from .messages import OutgoingMessage
 from .config import debug, uttumrc
 from . import utils
 from time import sleep
@@ -20,7 +20,7 @@ class Wrapper(object):
 
 def abort():
     aborted = 0
-    for msg in Message.list_all():
+    for msg in OutgoingMessage.list_all():
         msg.read()
         pid = msg.pid()
         if pid:
@@ -68,7 +68,7 @@ def freeze(message):
 
 def queue(arguments):
 
-    message = Message(str(uuid4()))
+    message = OutgoingMessage(str(uuid4()))
     message.write(arguments, sys.stdin.read())
 
     uttumrc.uttum(['--freeze', '--message', message.name], async=True)
