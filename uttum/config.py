@@ -30,6 +30,32 @@ class ConfigObject(object):
         return result
 
 
+class Message(object):
+
+    def __init__(self, path, name, message):
+        self.path = path
+        self.name = name
+        self.message = message
+
+    @property
+    def filename(self):
+        result = path.join(self.path, self.name)
+        info = self.message.get_info()
+        if info:
+            result += ':' + info
+        return result
+
+    def __repr__(self):
+        return 'message("%s")' % self.filename
+
+    def __str__(self):
+        return 'message("%s")' % self.message.get('Subject')
+
+    @property
+    def is_new(self):
+        return self.message.get_subdir() == 'new'
+
+
 class Folder(ConfigObject, predicates.ActionMount):
     notify = True
     link = True
@@ -86,7 +112,13 @@ class Folder(ConfigObject, predicates.ActionMount):
 
     @property
     def messages(self):
-        return self.maildir.values()
+        for k, v in self.maildir.items():
+            yield Message(self.mailpath, k, v)
+        # return self.maildir.values()
+
+    @property
+    def new_messages(self):
+        return filter(lambda m: m.is_new, self.messages)
 
 
 class DictWrapper(object):

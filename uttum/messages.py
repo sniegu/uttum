@@ -59,3 +59,8 @@ class OutgoingMessage(object):
     def list_all():
         for msg_path in uttumrc.queue_path:
             yield OutgoingMessage(os.path.split(msg_path)[1])
+
+
+
+
+
