@@ -24,7 +24,7 @@ def process(args):
         from uttum.config import uttumrc
         if len(args.accounts) == 0:
             if default_all and not only_one:
-                return uttumrc.accounts.values()
+                return uttumrc.accounts
             else:
                 raise CliException('must explicitely specify at least one account')
         else:
@@ -122,6 +122,13 @@ def process(args):
         if not uttumrc.validate_requirements():
             sys.exit(1)
 
+    if args.evals:
+        from uttum.config import uttumrc
+        for num, e in enumerate(args.evals):
+            value = eval(e)
+            locals()['e%s' % num] = value
+            print(value)
+
     if args.shell:
         from uttum.config import uttumrc
 
@@ -170,6 +177,7 @@ if __name__ == '__main__':
     parser.add_argument('--shell', dest='shell', action='store_true')
     parser.add_argument('--introspect', dest='introspect', action='store', default=[])
     parser.add_argument('--reqs', dest='reqs', action='store_true', help='check requirements')
+    parser.add_argument('--eval', dest='evals', action='append', default=[], help='check requirements')
 
 
     with utils.signal_handler(signal.SIGUSR1, noop_handler):

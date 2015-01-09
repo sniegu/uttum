@@ -71,6 +71,9 @@ class Folder(ConfigObject, predicates.ActionMount):
     def __str__(self):
         return 'folder %s:%s' % (self.account.name, self.name)
 
+    def __repr__(self):
+        return 'folder(%s:%s)' % (self.account.name, self.name)
+
     def bind_predicate(self, predicate):
         self.account.rules.append(predicates.Rule(predicate, self.move))
 
@@ -86,16 +89,22 @@ class Folder(ConfigObject, predicates.ActionMount):
         return self.maildir.values()
 
 
-class FoldersWrapper(object):
+class DictWrapper(object):
 
-    def __init__(self, account):
-        self.account = account
+    def __init__(self, dictionary):
+        self.dictionary = dictionary
 
     def __getattr__(self, name):
-        return self.account.folder(name)
+        return self.dictionary[name]
+
+    def __getitem__(self, name):
+        return self.dictionary[name]
 
     def __iter__(self):
-        return self.account._folders.itervalues()
+        return self.dictionary.itervalues()
+
+    def __str__(self):
+        return str(self.dictionary.values())
 
 
 class Account(ConfigObject):
@@ -148,11 +157,14 @@ class Account(ConfigObject):
     def __str__(self):
         return 'account %s' % self.name
 
+    def __repr__(self):
+        return 'account(%s)' % self.name
+
         # return 'account: %s [%s]' % (self.name, ', '.join([f.name for f in self.folders]))
 
     @property
     def folders(self):
-        return FoldersWrapper(self)
+        return DictWrapper(self._folders)
 
 
 UTTUMRC_TEMPLATE = """
@@ -213,21 +225,25 @@ class Config(ConfigObject):
 
         self.sentry_path  = self.mail_path / 'sentry'
 
-        self.accounts = {}
+        self._accounts = {}
         self.freeze_time = 10
 
 
 
     def account(self, name):
         _account = Account(name)
-        self.accounts.update({name: _account})
+        self._accounts.update({name: _account})
         return _account
+
+    @property
+    def accounts(self):
+        return DictWrapper(self._accounts)
 
     @property
     def requirements(self):
         for r in ConfigObject.requirements.__get__(self):
             yield r
-        for a in self.accounts.values():
+        for a in self.accounts:
             for r in a.requirements:
                 yield r
 
@@ -252,7 +268,7 @@ load_config()
 
 def show():
 
-    for a in uttumrc.accounts.values():
+    for a in uttumrc.accounts:
         print('* account: %s' % a.name)
         for f in a.folders:
             print('    * folder: %s' % f.name)
@@ -290,7 +306,7 @@ def generate():
         muttrc.write('# source %s\n' % uttumrc.muttrc_path)
         muttrc.write('set sendmail="%s --queue --"\n' % uttumrc.uttum.value)
 
-        for a in uttumrc.accounts.values():
+        for a in uttumrc.accounts:
             with utils.write_file(a.mailcheckrc.value_silent) as mailcheck_file:
                 for f in a.folders:
                     if not f.link:

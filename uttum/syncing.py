@@ -57,7 +57,7 @@ def create_folder(account, folder_name):
 def check():
     utils.notify('checking mail...')
     try:
-        for a in uttumrc.accounts.values():
+        for a in uttumrc.accounts:
             fetch(a)
     except:
         utils.notify('...failed to check mail', 1)

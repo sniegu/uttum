@@ -24,7 +24,7 @@ def check_all():
         add(out, 'sentry file not available')
         return out
 
-    for account in uttumrc.accounts.values():
+    for account in uttumrc.accounts:
         for m in uttumrc.mailcheck(['-c', '-f', account.mailcheckrc.value], lines=True):
             match = MAIL_MATCHER.match(m)
             if match:
