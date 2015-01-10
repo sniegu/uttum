@@ -8,6 +8,7 @@ from . exceptions import SentryException, DeprecatedException
 from contextlib import contextmanager
 from . import predicates
 import mailbox
+# from cached_property import cached_property
 
 debug = print
 
@@ -32,17 +33,33 @@ class ConfigObject(object):
 
 class Message(object):
 
-    def __init__(self, path, name, message):
-        self.path = path
+    def __init__(self, folder_path, subdir, name, info, message=None):
+        self.folder_path = folder_path
+        self.subdir = subdir
         self.name = name
-        self.message = message
+        self.info = info
+        self._message = message
+
+    @staticmethod
+    def from_file(full_path):
+        directory, filename = path.split(full_path)
+        if ':' in filename:
+            name, info = filename.split(':')
+        else:
+            name = filename
+            info = None
+        folder_path, subdir = path.split(directory)
+        return Message(folder_path, subdir, name, info, None)
+
+    @staticmethod
+    def from_message(folder_path, name, message):
+        return Message(folder_path, message.get_subdir(), name, message.get_info(), message)
 
     @property
     def filename(self):
-        result = path.join(self.path, self.message.get_subdir(), self.name)
-        info = self.message.get_info()
-        if info:
-            result += ':' + info
+        result = path.join(self.folder_path, self.subdir, self.name)
+        if self.info:
+            result += ':' + self.info
         return result
 
     def __repr__(self):
@@ -52,8 +69,21 @@ class Message(object):
         return 'message("%s")' % self.message.get('Subject')
 
     @property
+    def message(self):
+        if self._message is None:
+            try:
+                self._message = read_message(self.filename)
+            except Exception as e:
+                print('exception while reading message %s: %s' % (msg_path, e))
+                raise
+
+        return self._message
+
+
+
+    @property
     def is_new(self):
-        return self.message.get_subdir() == 'new'
+        return self.subdir == 'new'
 
 
 def read_message(filename):
@@ -66,6 +96,7 @@ def read_message(filename):
     else:
         # print('exception while reading message %s: %s' % (msg_path, e))
         raise Exception()
+
 
 class Folder(ConfigObject, predicates.ActionMount):
     notify = True
@@ -124,8 +155,7 @@ class Folder(ConfigObject, predicates.ActionMount):
     @property
     def messages(self):
         for k, v in self.maildir.items():
-            yield Message(self.mailpath, k, v)
-        # return self.maildir.values()
+            yield Message.from_message(self.mailpath, k, v)
 
     @property
     def new_messages(self):
@@ -136,11 +166,7 @@ class Folder(ConfigObject, predicates.ActionMount):
             if not path.exists(msg_path):
                 continue
 
-            try:
-                message = read_message(msg_path)
-                yield Message(self.mailpath, msg_filename, message)
-            except Exception as e:
-                print('exception while reading message %s: %s' % (msg_path, e))
+            yield Message.from_file(msg_path)
 
 
 class DictWrapper(object):
