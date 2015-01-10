@@ -18,7 +18,7 @@ def noop_handler(signum, frame):
 def dummy_context_manager():
     yield
 
-def process(args):
+def process(args, other):
 
     def accounts(default_all=True, only_one=False):
         from uttum.config import uttumrc
@@ -194,7 +194,7 @@ def run():
 
             args = parser.parse_args(args)
 
-            process(args)
+            process(args, other)
 
         except UttumException as e:
             print('%s' % e)

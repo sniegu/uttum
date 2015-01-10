@@ -69,6 +69,6 @@ def freeze(message):
 def queue(arguments):
 
     message = OutgoingMessage(str(uuid4()))
-    message.write(arguments, sys.stdin.read())
+    message.write(arguments, sys.stdin.buffer.read())
 
     uttumrc.uttum(['--freeze', '--message', message.name], async=True)
