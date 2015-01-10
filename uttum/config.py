@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 
-from os import path
+from os import path, listdir
 import os
 from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonRequirement, CommonRequirementWrapper
 from . import utils
@@ -39,7 +39,7 @@ class Message(object):
 
     @property
     def filename(self):
-        result = path.join(self.path, self.name)
+        result = path.join(self.path, self.message.get_subdir(), self.name)
         info = self.message.get_info()
         if info:
             result += ':' + info
@@ -116,13 +116,19 @@ class Folder(ConfigObject, predicates.ActionMount):
             yield Message(self.mailpath, k, v)
         # return self.maildir.values()
 
-    # @property
-    # def new_messages(self):
-    #     return filter(lambda m: m.is_new, self.messages)
-    #     for msg_filename in listdir(path.join(self.mailpath, 'new')):
-    #         msg_path = path.join(input_path, msg)
-    #         if not path.exists(msg_path):
-    #             continue
+    @property
+    def new_messages(self):
+        # return filter(lambda m: m.is_new, self.messages)
+        root_path = path.join(self.mailpath, 'new')
+        for msg_filename in listdir(root_path):
+            msg_path = path.join(root_path, msg_filename)
+            if not path.exists(msg_path):
+                continue
+
+            with open(msg_path) as f:
+                message = mailbox.MaildirMessage(f)
+
+            yield Message(self.mailpath, msg_filename, message)
 
 
 class DictWrapper(object):
