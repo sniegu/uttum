@@ -6,7 +6,6 @@ single place.
 Uttum links together following tools:
 * mutt
 * procmail
-* mailcheck
 * offlineimap
 * msmtp
 

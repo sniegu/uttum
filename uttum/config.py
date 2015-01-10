@@ -56,6 +56,17 @@ class Message(object):
         return self.message.get_subdir() == 'new'
 
 
+def read_message(filename):
+    for encoding in ('utf8', 'iso-8859-2'):
+        try:
+            with open(filename, 'r', encoding=encoding) as f:
+                return mailbox.MaildirMessage(f)
+        except Exception as e:
+            continue
+    else:
+        # print('exception while reading message %s: %s' % (msg_path, e))
+        raise Exception()
+
 class Folder(ConfigObject, predicates.ActionMount):
     notify = True
     link = True
@@ -125,10 +136,11 @@ class Folder(ConfigObject, predicates.ActionMount):
             if not path.exists(msg_path):
                 continue
 
-            with open(msg_path) as f:
-                message = mailbox.MaildirMessage(f)
-
-            yield Message(self.mailpath, msg_filename, message)
+            try:
+                message = read_message(msg_path)
+                yield Message(self.mailpath, msg_filename, message)
+            except Exception as e:
+                print('exception while reading message %s: %s' % (msg_path, e))
 
 
 class DictWrapper(object):
@@ -153,7 +165,6 @@ class Account(ConfigObject):
 
     config_path = PathRequirement('config path')
     procmailrc = FileRequirement('procmail configuration')
-    mailcheckrc = FileRequirement('mailcheck configuration')
     mailpath = PathRequirement('mailbox path')
     # TODO: default_address
 
@@ -164,7 +175,6 @@ class Account(ConfigObject):
 
         self.config_path = uttumrc.accounts_path / self.name
         self.procmailrc = self.config_path / 'procmailrc'
-        self.mailcheckrc = self.config_path / 'mailcheckrc'
         self.mailpath = uttumrc.mail_path / self.name
 
 
@@ -237,7 +247,6 @@ class Config(ConfigObject):
 
     procmail = ProgramRequirement('procmail')
     offlineimap = ProgramRequirement('offlineimap')
-    mailcheck = ProgramRequirement('mailcheck')
     twmnc = ProgramRequirement('twmnc')
     msmtp = ProgramRequirement('msmtp')
     uttum = ProgramRequirement('uttum')
@@ -349,20 +358,18 @@ def generate():
         muttrc.write('set sendmail="%s --queue --"\n' % uttumrc.uttum.value)
 
         for a in uttumrc.accounts:
-            with utils.write_file(a.mailcheckrc.value_silent) as mailcheck_file:
-                for f in a.folders:
-                    if not f.link:
-                        continue
-                    link_name = uttumrc.merged_path / f.shortcut
-                    source = f.mailpath
+            for f in a.folders:
+                if not f.link:
+                    continue
+                link_name = uttumrc.merged_path / f.shortcut
+                source = f.mailpath
 
-                    muttrc.write('mailboxes +%s\n' % f.shortcut)
-                    if f.mapping is not None:
-                        muttrc.write('macro index %s "<change-folder>\cu=%s<enter>" "change folder to %s %s"\n' % (f.mapping, f.shortcut, f.account.name, f.name))
+                muttrc.write('mailboxes +%s\n' % f.shortcut)
+                if f.mapping is not None:
+                    muttrc.write('macro index %s "<change-folder>\cu=%s<enter>" "change folder to %s %s"\n' % (f.mapping, f.shortcut, f.account.name, f.name))
 
-                    mailcheck_file.write('%s\n' % f.mailpath)
 
-                    print('-- creating shortcut: %s -> %s' % (link_name, source))
-                    os.symlink(source, link_name)
+                print('-- creating shortcut: %s -> %s' % (link_name, source))
+                os.symlink(source, link_name)
 
 

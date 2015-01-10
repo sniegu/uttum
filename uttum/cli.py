@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # if sys.version_info.major < 3:
 from __future__ import print_function, absolute_import
 
