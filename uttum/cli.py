@@ -146,7 +146,7 @@ def process(args):
         # folder =
 
 
-if __name__ == '__main__':
+def run():
 
     parser = argparse.ArgumentParser(description='uttum')
     parser.add_argument('-a', '--account', dest='accounts', action='append', default=[], help='accounts to operate on, default is all')
