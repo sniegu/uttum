@@ -33,31 +33,31 @@ class ConfigObject(object):
 
 class Message(object):
 
-    def __init__(self, folder_path, subdir, name, info, message=None):
-        self.folder_path = folder_path
+    def __init__(self, folder, subdir, name, info, message=None):
+        self.folder = folder
         self.subdir = subdir
         self.name = name
         self.info = info
         self._message = message
 
     @staticmethod
-    def from_file(full_path):
+    def from_file(folder, full_path):
         directory, filename = path.split(full_path)
         if ':' in filename:
             name, info = filename.split(':')
         else:
             name = filename
             info = None
-        folder_path, subdir = path.split(directory)
-        return Message(folder_path, subdir, name, info, None)
+        _, subdir = path.split(directory)
+        return Message(folder, subdir, name, info, None)
 
     @staticmethod
-    def from_message(folder_path, name, message):
-        return Message(folder_path, message.get_subdir(), name, message.get_info(), message)
+    def from_message(folder, name, message):
+        return Message(folder, message.get_subdir(), name, message.get_info(), message)
 
     @property
     def filename(self):
-        result = path.join(self.folder_path, self.subdir, self.name)
+        result = path.join(self.folder.mailpath, self.subdir, self.name)
         if self.info:
             result += ':' + self.info
         return result
@@ -155,7 +155,7 @@ class Folder(ConfigObject, predicates.ActionMount):
     @property
     def messages(self):
         for k, v in self.maildir.items():
-            yield Message.from_message(self.mailpath, k, v)
+            yield Message.from_message(self, k, v)
 
     @property
     def new_messages(self):
@@ -166,7 +166,7 @@ class Folder(ConfigObject, predicates.ActionMount):
             if not path.exists(msg_path):
                 continue
 
-            yield Message.from_file(msg_path)
+            yield Message.from_file(self, msg_path)
 
 
 class DictWrapper(object):
