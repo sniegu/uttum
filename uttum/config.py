@@ -116,9 +116,13 @@ class Folder(ConfigObject, predicates.ActionMount):
             yield Message(self.mailpath, k, v)
         # return self.maildir.values()
 
-    @property
-    def new_messages(self):
-        return filter(lambda m: m.is_new, self.messages)
+    # @property
+    # def new_messages(self):
+    #     return filter(lambda m: m.is_new, self.messages)
+    #     for msg_filename in listdir(path.join(self.mailpath, 'new')):
+    #         msg_path = path.join(input_path, msg)
+    #         if not path.exists(msg_path):
+    #             continue
 
 
 class DictWrapper(object):
@@ -133,7 +137,7 @@ class DictWrapper(object):
         return self.dictionary[name]
 
     def __iter__(self):
-        return self.dictionary.itervalues()
+        return iter(self.dictionary.values())
 
     def __str__(self):
         return str(self.dictionary.values())
