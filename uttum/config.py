@@ -184,7 +184,10 @@ class DictWrapper(object):
         return iter(self.dictionary.values())
 
     def __str__(self):
-        return str(self.dictionary.values())
+        return str(list(self.dictionary.values()))
+
+    def __repr__(self):
+        return repr(list(self.dictionary.values()))
 
 
 class Account(ConfigObject):
