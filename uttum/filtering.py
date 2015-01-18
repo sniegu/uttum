@@ -18,16 +18,16 @@ def filter(account, folder='INBOX', kind='new'):
         if not path.exists(msg_path):
             continue
 
-        print('processing message: %s' % msg)
+        # print('processing message: %s' % msg)
 
-        for rule in account.rules:
-            if rule.process(msg):
-                print('rule %s matches' % (rule.predicate))
-                break
-            else:
-                print('rule %s does not match' % (rule.predicate))
-        else:
-            print('nothing matched')
+        # for rule in account.rules:
+        #     if rule.process(msg):
+        #         print('rule %s matches' % (rule.predicate))
+        #         break
+        #     else:
+        #         print('rule %s does not match' % (rule.predicate))
+        # else:
+        #     print('nothing matched')
 
         if not uttumrc.procmail or not account.procmailrc:
             continue
