@@ -328,8 +328,8 @@ class Config(ConfigObject):
                 yield r
 
     def raise_for_sentry(self):
-        if self.sentry_path.invalid:
-            raise SentryException()
+        if self.sentry_path.enabled and self.sentry_path.invalid:
+            raise SentryException('missing sentry file: %s' % self.sentry_path.value_silent)
 
 
 uttumrc = Config()
