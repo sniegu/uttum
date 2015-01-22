@@ -110,8 +110,8 @@ def process(args, other):
         for account in accounts():
             with locked(account):
                 folders = args.folders if args.folders else ['INBOX']
-                for f in args.folders:
-                    filtering.filter(account, folder=f, kind=args.category)
+                for f in folders:
+                    filtering.filter(account.folders[f], kind=args.category)
 
 
     for n in args.notifies:
@@ -164,8 +164,9 @@ def run():
     parser.add_argument('-y', '--sync', dest='sync', action='store_true', help='')
     parser.add_argument('-e', '--fetch', dest='fetch', action='store_true', default=False, help='')
     parser.add_argument('--unlocked', dest='unlocked', action='store_true', help='')
-    parser.add_argument('-f', '--filter', dest='filter', action='store_true', help='')
+    parser.add_argument('-i', '--filter', dest='filter', action='store_true', help='')
     parser.add_argument('-d', '--folder', dest='folders', action='append', default=[])
+    parser.add_argument('-f', '--folder2', dest='folders', action='append', default=[])
     parser.add_argument('-c', '--current', dest='category', action='store_const', const='cur', default='new')
     parser.add_argument('--notify', dest='notifies', action='append', default=[])
     parser.add_argument('--create', dest='create', action='store_true', default=False)

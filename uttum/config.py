@@ -8,7 +8,9 @@ from . exceptions import SentryException, DeprecatedException
 from contextlib import contextmanager
 from . import predicates
 import mailbox
-# from cached_property import cached_property
+from cached_property import cached_property
+import email.header
+import shutil
 
 debug = print
 
@@ -29,6 +31,26 @@ class ConfigObject(object):
             if not r.ok:
                 result = False
         return result
+
+class DictWrapper(object):
+
+    def __init__(self, dictionary):
+        self.dictionary = dictionary
+
+    def __getattr__(self, name):
+        return self.dictionary[name]
+
+    def __getitem__(self, name):
+        return self.dictionary[name]
+
+    def __iter__(self):
+        return iter(self.dictionary.values())
+
+    def __str__(self):
+        return str(list(self.dictionary.values()))
+
+    def __repr__(self):
+        return repr(list(self.dictionary.values()))
 
 
 class Message(object):
@@ -61,6 +83,14 @@ class Message(object):
         if self.info:
             result += ':' + self.info
         return result
+
+    @staticmethod
+    def decode_header(header):
+        decoded = email.header.decode_header(header)
+        return ''.join((d[0] if isinstance(d[0], str) else (d[0].decode(d[1] if d[1] is not None else 'ascii'))) for d in decoded)
+
+    def get_header(self, header_name):
+        return self.decode_header(self.message.get(header_name))
 
     def __repr__(self):
         return 'message("%s")' % self.filename
@@ -113,7 +143,10 @@ class Folder(ConfigObject, predicates.ActionMount):
         self.account = account
         self.name = name
         self.alias = name
-        self.maildir = mailbox.Maildir(self.mailpath, factory=None, create=False)
+
+    @cached_property
+    def maildir(self):
+        return mailbox.Maildir(self.mailpath, factory=None, create=False)
 
     @property
     def shortcut(self):
@@ -147,10 +180,14 @@ class Folder(ConfigObject, predicates.ActionMount):
 
     def move(self, message):
         print('moving %s to %s' % (message, self))
+        fullname = path.split(message.filename)[1]
+        shutil.copyfile(message.filename, path.join(uttumrc.mail_path.value, 'sorted', fullname))
+        os.rename(message.filename, path.join(self.mailpath, 'new', fullname))
 
     def filter(self, *args, **kwargs):
         self.bind_predicate(predicates.construct(*args, **kwargs))
         return self
+
 
     @property
     def messages(self):
@@ -169,25 +206,6 @@ class Folder(ConfigObject, predicates.ActionMount):
             yield Message.from_file(self, msg_path)
 
 
-class DictWrapper(object):
-
-    def __init__(self, dictionary):
-        self.dictionary = dictionary
-
-    def __getattr__(self, name):
-        return self.dictionary[name]
-
-    def __getitem__(self, name):
-        return self.dictionary[name]
-
-    def __iter__(self):
-        return iter(self.dictionary.values())
-
-    def __str__(self):
-        return str(list(self.dictionary.values()))
-
-    def __repr__(self):
-        return repr(list(self.dictionary.values()))
 
 
 class Account(ConfigObject):

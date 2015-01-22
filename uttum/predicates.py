@@ -16,7 +16,8 @@ class Rule(object):
         self.action = action
 
     def process(self, message):
-        if self.predicate(message):
+        context = Context(message)
+        if self.predicate.matches(context):
             self.action(message)
             return True
         else:
@@ -103,16 +104,21 @@ class ConjunctionPredicate(CompoundPredicate):
 
 class HeaderRegexPredicate(Predicate):
 
-    def __init__(self, header, regex):
+    def __init__(self, header, regex, match=False):
         self.header = header
         self.regex = regex
+        self.match = match
         self.compiled = re.compile(regex)
 
     def matches(self, context):
-        return False
+        header = context.message.get_header(self.header)
+        if self.match:
+            return self.compiled.match(header) is not None
+        else:
+            return self.compiled.search(header) is not None
 
     def __str__(self):
-        return '%s ~ %s' % (self.header, self.regex)
+        return '%s ~ "%s"' % (self.header, self.regex)
 
 
 def parse_predicate(name, value):
@@ -122,7 +128,10 @@ def parse_predicate(name, value):
         header, operator = name, 'equals'
 
     if operator == 'matches':
-        return HeaderRegexPredicate(header, value)
+        return HeaderRegexPredicate(header, value, match=True)
+
+    if operator == 'contains':
+        return HeaderRegexPredicate(header, value, match=False)
 
     raise exceptions.ConfigurationException()
 
