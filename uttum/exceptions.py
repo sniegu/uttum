@@ -19,3 +19,9 @@ class LockException(UttumException):
 
 class CliException(UttumException):
     pass
+
+class MessageException(UttumException):
+    pass
+
+class MissingHeaderException(MessageException):
+    pass

@@ -5,6 +5,7 @@ import os
 from .utils import ProgramRequirement, FileRequirement, PathRequirement, CommonRequirement, CommonRequirementWrapper
 from . import utils
 from . exceptions import SentryException, DeprecatedException
+from . import exceptions
 from contextlib import contextmanager
 from . import predicates
 import mailbox
@@ -90,7 +91,10 @@ class Message(object):
         return ''.join((d[0] if isinstance(d[0], str) else (d[0].decode(d[1] if d[1] is not None else 'ascii'))) for d in decoded)
 
     def get_header(self, header_name):
-        return self.decode_header(self.message.get(header_name))
+        value = self.message.get(header_name)
+        if value is None:
+            raise exceptions.MissingHeaderException('%s is missing in %s' % (header_name, self))
+        return self.decode_header(value)
 
     def __repr__(self):
         return 'message("%s")' % self.filename

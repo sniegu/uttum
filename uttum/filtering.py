@@ -23,10 +23,10 @@ def filter(folder, kind='new'):
 
         for rule in folder.account.rules:
             if rule.process(message):
-                print('rule (%s) matches' % (rule.predicate))
+                print('rule %s matches' % (rule.predicate))
                 break
             else:
-                print('rule (%s) does not match' % (rule.predicate))
+                print('rule %s does not match' % (rule.predicate))
         else:
             print('nothing matched')
             if not uttumrc.procmail or not folder.account.procmailrc:

@@ -2,6 +2,7 @@ from __future__ import print_function, absolute_import
 
 from . import exceptions
 import re
+import functools
 
 class ActionMount(object):
 
@@ -101,37 +102,59 @@ class ConjunctionPredicate(CompoundPredicate):
     def __str__(self):
         return '(' + ' and '.join(map(str, self.predicates)) + ')'
 
+def false_on_missing_header(func):
+
+    @functools.wraps
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except exceptions.MissingHeaderException as e:
+            return False
+
+    return wrapped
 
 class HeaderRegexPredicate(Predicate):
 
-    def __init__(self, header, regex, match=False):
+    def __init__(self, header, regex):
         self.header = header
         self.regex = regex
-        self.match = match
         self.compiled = re.compile(regex)
 
+    @false_on_missing_header
     def matches(self, context):
-        header = context.message.get_header(self.header)
-        if self.match:
-            return self.compiled.match(header) is not None
-        else:
-            return self.compiled.search(header) is not None
+        return self.compiled.search(context.message.get_header(self.header)) is not None
 
     def __str__(self):
-        return '%s ~ "%s"' % (self.header, self.regex)
+        return '(%s ~ "%s")' % (self.header, self.regex)
+
+class ContactHeaderPredicate(Predicate):
+
+    def __init__(self, header, contact):
+        self.header = header
+        self.contact = contact
+
+    @false_on_missing_header
+    def matches(self, context):
+        return self.contact in context.message.get_header(self.header)
+
+    def __str__(self):
+        return '("%s" in %s)' % (self.contact, self.header)
 
 
 def parse_predicate(name, value):
     if '_' in name:
         header, operator = name.split('_')
     else:
-        header, operator = name, 'equals'
+        header, operator = name, None
+
+    if operator is None:
+        if header == 'contacts':
+            contact = value
+            return AlternativePredicate(ContactHeaderPredicate('to', contact), ContactHeaderPredicate('from', contact), ContactHeaderPredicate('cc', contact))
 
     if operator == 'matches':
-        return HeaderRegexPredicate(header, value, match=True)
+        return HeaderRegexPredicate(header, value)
 
-    if operator == 'contains':
-        return HeaderRegexPredicate(header, value, match=False)
 
     raise exceptions.ConfigurationException()
 
