@@ -15,17 +15,19 @@ def sync_folder(folder):
 def sync(account):
 
     uttumrc.offlineimap(['-a', account.name])
+    inbox = account.folders.INBOX
 
-    filtering.filter(account, 'INBOX')
-    filtering.filter(account, 'INBOX', kind='cur')
+    filtering.filter(inbox)
+    filtering.filter(inbox, kind='cur')
 
 
 def fetch(account):
 
     sync_folder(account.folders.INBOX)
+    inbox = account.folders.INBOX
 
-    filtering.filter(account, 'INBOX')
-    filtering.filter(account, 'INBOX', kind='cur')
+    filtering.filter(inbox)
+    filtering.filter(inbox, kind='cur')
 
 
 def create_folder(account, folder_name):
