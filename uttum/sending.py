@@ -38,7 +38,7 @@ def send(message):
     with open(message.content_file, 'r') as content:
         debug('sending: %s' % message)
         if not uttumrc.msmtp(message.arguments, stdin=content, throw=False):
-            utils.notify("failed to send: %s" % ','.join(message), 1)
+            utils.notify("failed to send: %s" % message, 1)
             return False
 
         utils.notify("sent: %s" % message)
