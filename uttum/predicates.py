@@ -118,7 +118,7 @@ class HeaderRegexPredicate(Predicate):
     def __init__(self, header, regex):
         self.header = header
         self.regex = regex
-        self.compiled = re.compile(regex)
+        self.compiled = re.compile(regex, re.IGNORECASE)
 
     @false_on_missing_header
     def matches(self, context):
@@ -136,7 +136,7 @@ class HeaderContainsPredicate(Predicate):
 
     @false_on_missing_header
     def matches(self, context):
-        return self.value in context.message.get_header(self.header)
+        return self.value.lower() in context.message.get_header(self.header).lower()
 
     def __str__(self):
         return '("%s" in %s)' % (self.value, self.header)
@@ -210,4 +210,5 @@ def construct(*args, **kwargs):
 Q = construct
 true = TruePredicate()
 false = FalsePredicate()
+header_contains = HeaderContainsPredicate
 

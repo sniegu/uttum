@@ -20,18 +20,15 @@ def filter(folder, kind='new'):
             continue
         message = Message.from_file(folder, msg_path)
 
-        print('processing message: %s' % msg)
+        # print('processing message: %s' % msg)
 
         context = predicates.Context(message)
         for rule in folder.account.rules:
             if rule.predicate.matches(context):
-                print('rule %s matches' % (rule.predicate))
+                # print('rule %s matches' % (rule.predicate))
                 rule.action(message)
                 break
-            else:
-                print('rule %s does not match' % (rule.predicate))
         else:
-            print('nothing matched')
             if not uttumrc.procmail or not folder.account.procmailrc:
                 continue
             print('trying to use procmail')
@@ -47,5 +44,4 @@ def filter(folder, kind='new'):
 
         sys.stdout.flush()
 
-    print("")
 
