@@ -186,7 +186,8 @@ class Folder(ConfigObject, predicates.ActionMount):
         print('moving %s to %s' % (message, self))
         fullname = path.split(message.filename)[1]
         shutil.copyfile(message.filename, path.join(uttumrc.mail_path.value, 'sorted', fullname))
-        os.rename(message.filename, path.join(self.mailpath, 'new', fullname))
+        # from IPython import embed ; embed()
+        os.rename(message.filename, path.join(self.mailpath, 'new' if message.is_new else 'cur', fullname))
 
     def filter(self, *args, **kwargs):
         self.bind_predicate(predicates.construct(*args, **kwargs))

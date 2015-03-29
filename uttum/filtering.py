@@ -4,6 +4,7 @@ from os import path, listdir
 from .config import debug, uttumrc, Message
 import sys
 import os
+from . import predicates
 
 
 
@@ -21,9 +22,11 @@ def filter(folder, kind='new'):
 
         print('processing message: %s' % msg)
 
+        context = predicates.Context(message)
         for rule in folder.account.rules:
-            if rule.process(message):
+            if rule.predicate.matches(context):
                 print('rule %s matches' % (rule.predicate))
+                rule.action(message)
                 break
             else:
                 print('rule %s does not match' % (rule.predicate))

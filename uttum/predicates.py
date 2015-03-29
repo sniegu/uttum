@@ -104,7 +104,7 @@ class ConjunctionPredicate(CompoundPredicate):
 
 def false_on_missing_header(func):
 
-    @functools.wraps
+    @functools.wraps(func)
     def wrapped(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -141,22 +141,33 @@ class ContactHeaderPredicate(Predicate):
         return '("%s" in %s)' % (self.contact, self.header)
 
 
+def find_contact(value):
+    return value
+
+
+
 def parse_predicate(name, value):
-    if '_' in name:
-        header, operator = name.split('_')
+    if '__' in name:
+        header, operator = name.split('__')
     else:
         header, operator = name, None
 
     if operator is None:
         if header == 'contacts':
-            contact = value
-            return AlternativePredicate(ContactHeaderPredicate('to', contact), ContactHeaderPredicate('from', contact), ContactHeaderPredicate('cc', contact))
+            contact = find_contact(value)
+            return AlternativePredicate(parse_predicate('contact_to', contact), parse_predicate('contact_from', contact), parse_predicate('contact_cc', contact))
+        if header == 'contact_to':
+            return ContactHeaderPredicate('to', find_contact(value))
+        if header == 'contact_from':
+            return ContactHeaderPredicate('from', find_contact(value))
+        if header == 'contact_cc':
+            return ContactHeaderPredicate('cc', find_contact(value))
 
     if operator == 'matches':
         return HeaderRegexPredicate(header, value)
 
 
-    raise exceptions.ConfigurationException()
+    raise exceptions.ConfigurationException('invalid predicate: %s %s' % (name, value))
 
 def construct(*args, **kwargs):
 
