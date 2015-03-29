@@ -127,6 +127,20 @@ class HeaderRegexPredicate(Predicate):
     def __str__(self):
         return '(%s ~ "%s")' % (self.header, self.regex)
 
+
+class HeaderContainsPredicate(Predicate):
+
+    def __init__(self, header, value):
+        self.header = header
+        self.value = value
+
+    @false_on_missing_header
+    def matches(self, context):
+        return self.value in context.message.get_header(self.header)
+
+    def __str__(self):
+        return '("%s" in %s)' % (self.value, self.header)
+
 class ContactHeaderPredicate(Predicate):
 
     def __init__(self, header, contact):
@@ -145,29 +159,42 @@ def find_contact(value):
     return value
 
 
+def resolve_header(header, predicate, *arguments):
+
+    if header == 'contacts':
+        return AlternativePredicate(predicate('to', *arguments), predicate('from', *arguments), predicate('cc', *arguments))
+
+    return predicate(header, *arguments)
 
 def parse_predicate(name, value):
-    if '__' in name:
-        header, operator = name.split('__')
+    if '_' in name:
+        header, operator = name.split('_')
     else:
-        header, operator = name, None
+        header, operator = name, 'contains'
 
-    if operator is None:
-        if header == 'contacts':
-            contact = find_contact(value)
-            return AlternativePredicate(parse_predicate('contact_to', contact), parse_predicate('contact_from', contact), parse_predicate('contact_cc', contact))
-        if header == 'contact_to':
-            return ContactHeaderPredicate('to', find_contact(value))
-        if header == 'contact_from':
-            return ContactHeaderPredicate('from', find_contact(value))
-        if header == 'contact_cc':
-            return ContactHeaderPredicate('cc', find_contact(value))
-
-    if operator == 'matches':
-        return HeaderRegexPredicate(header, value)
+    if header == 'contacts':
+        headers = ['to', 'from', 'cc']
+    else:
+        headers = [header]
 
 
-    raise exceptions.ConfigurationException('invalid predicate: %s %s' % (name, value))
+    if operator == 'contains':
+        args = [value]
+        predicate = HeaderContainsPredicate
+    elif operator == 'person':
+        args = [find_contact(value)]
+        predicate = ContactHeaderPredicate
+    elif operator == 'matches':
+        args = [value]
+        predicate = HeaderRegexPredicate
+    else:
+        raise exceptions.ConfigurationException('invalid predicate: %s %s' % (name, value))
+
+    if len(headers) == 1:
+        return predicate(headers[0], *args)
+    else:
+        return AlternativePredicate(*[predicate(header, *args) for header in headers])
+
 
 def construct(*args, **kwargs):
 
