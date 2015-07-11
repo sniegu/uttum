@@ -16,7 +16,7 @@ def check_all():
 
 
     if uttumrc.sentry_path.invalid:
-        add(out, 'sentry file not available')
+        add(out, 'sentry file not available', 'error')
         return out
 
     for account in uttumrc.accounts:
