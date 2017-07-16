@@ -24,6 +24,16 @@ class OutgoingMessage(object):
 
     def write(self, arguments, content):
         os.makedirs(self.message_path)
+
+        if arguments[0] != '-f':
+            # fixing missing -f argument
+            import email
+            import email.utils
+            msg = email.message_from_bytes(content)
+            from_address = email.utils.parseaddr(msg['From'])[1]
+
+            arguments = [ '-f', from_address, '--' ] + arguments
+
         self.arguments = arguments
 
         with open(self.content_file, 'wb') as f:
