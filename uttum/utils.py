@@ -135,7 +135,7 @@ class ProgramRequirementWrapper(CommonRequirementWrapper):
         return [self.value] + list(command)
 
 
-    def __call__(self, command=[], silent=False, throw=False, lines=False, devnull=False, async=False, *args, **kwargs):
+    def __call__(self, command=[], silent=False, throw=False, lines=False, devnull=False, async_mode=False, *args, **kwargs):
 
         if silent:
             if not self.ok:
@@ -152,7 +152,7 @@ class ProgramRequirementWrapper(CommonRequirementWrapper):
                     kwargs['stdout'] = dn
                     kwargs['stderr'] = dn
 
-                if async:
+                if async_mode:
                     subprocess.Popen(self._to_run(command), *args, **kwargs)
                 else:
                     subprocess.check_call(self._to_run(command), *args, **kwargs)
@@ -301,7 +301,7 @@ def notify(line, good=0):
     if not uttumrc.twmnc:
         return
     good = int(good)
-    uttumrc.twmnc(['--content', line, '--fg', '#859900' if good == 0 else '#dc322f'], async=True)
+    uttumrc.twmnc(['--content', line, '--fg', '#859900' if good == 0 else '#dc322f'], async_mode=True)
 
 
 def assure_path(p):

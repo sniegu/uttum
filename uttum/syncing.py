@@ -68,5 +68,5 @@ def check():
 
 
 def check_bg():
-    uttumrc.uttum(['--check'], devnull=True, async=True)
+    uttumrc.uttum(['--check'], devnull=True, async_mode=True)
 
